@@ -41,3 +41,7 @@ Vite, React, TypeScript, Three.js, React Three Fiber, Drei, Zustand and Vitest; 
 ## Design rule
 
 Keep the game engine independent from React/Three.js. Preserve all game decisions in configuration and pure, testable rules.
+## Development
+
+Active development takes place on the development branch.
+The v1.2 release is preserved as a Git tag.
