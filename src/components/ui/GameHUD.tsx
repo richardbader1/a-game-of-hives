@@ -1,15 +1,17 @@
+import { InventoryToolbar } from './InventoryToolbar';
+import { TradePanel } from './TradePanel';
+import { BoardDestinations } from './BoardDestinations';
+import { GameHelp } from './GameHelp';
+import { useSessionStore } from '../../store/sessionStore';
 import { useEffect, useRef, useState } from 'react';
-import { HIVE_SUPPLY, IMPROVEMENT_SUPPLY, RESOURCE_PRESENTATION, TILE_SUPPLY, WINNING_SCORE } from '../../game/config/gameSettings';
+import { IMPROVEMENT_SUPPLY, RESOURCE_PRESENTATION, TILE_SUPPLY } from '../../game/config/gameSettings';
 import {
   availableBeekeeperActions,
-  canPurchase,
   eventDescription,
   eventName,
   healthyHiveCount,
-  legalHivePurchaseTiles,
   movementDestinations,
   remainingTileSupply,
-  scoreInventory,
 } from '../../game/engine/gameEngine';
 import type { ActionCategory, ImprovementType, ResourceType } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
@@ -28,23 +30,6 @@ const IMPROVEMENT_LABELS: Record<ImprovementType | 'repairHive' | 'repairTile', 
   repairTile: 'Repair garden tile',
 };
 
-function missingHoneyIngredients(state: ReturnType<typeof useGameStore.getState>): string {
-  const missing = [
-    state.inventory.pollen < 1 ? `${1 - state.inventory.pollen} pollen` : '',
-    state.inventory.nectar < 1 ? `${1 - state.inventory.nectar} nectar` : '',
-    state.inventory.water < 1 ? `${1 - state.inventory.water} water` : '',
-  ].filter(Boolean);
-  return missing.length ? `Still need ${missing.join(', ')}.` : 'Ready to make.';
-}
-
-function missingBreadIngredients(state: ReturnType<typeof useGameStore.getState>): string {
-  const missing = [
-    state.inventory.pollen < 2 ? `${2 - state.inventory.pollen} pollen` : '',
-    state.inventory.nectar < 3 ? `${3 - state.inventory.nectar} nectar` : '',
-  ].filter(Boolean);
-  return missing.length ? `Still need ${missing.join(', ')}.` : 'Ready to make.';
-}
-
 export function GameHUD() {
   const state = useGameStore();
   const {
@@ -57,17 +42,14 @@ export function GameHUD() {
     selectedTileId,
     tiles,
     hives,
-    inventory,
     dieResult,
     currentEvent,
     eventRestriction,
-    pendingHivePurchase,
     outcome,
     eventLog,
     lastCollected,
   } = state;
   const currentPlayer = players[currentPlayerIndex];
-  const score = scoreInventory(inventory);
   const livingHives = healthyHiveCount(hives);
   const selectedTile = tiles.find((tile) => tile.id === selectedTileId);
   const selectedHive = hives.find((hive) => hive.tileId === selectedTileId);
@@ -79,38 +61,23 @@ export function GameHUD() {
     wildlifeReserve: tiles.filter((tile) => tile.wildlifeReserve).length,
     noSprayZone: tiles.filter((tile) => tile.noSprayZone).length,
   };
-  const hiveCanBePlaced = legalHivePurchaseTiles(state).length > 0;
-  const hiveCanBeBought = canPurchase(state, 'hive');
   const beeCanMove = movementDestinations(state.beeTileId, tiles, 'bee').length > 0;
   const beekeeperCanMove = movementDestinations(state.beekeeperTileId, tiles, 'beekeeper').length > 0;
   const anyGardenSupply = (['pollen', 'nectar', 'water'] as const)
     .some((resource) => remainingTileSupply(tiles, resource) > 0);
-  const [openRecipe, setOpenRecipe] = useState<'honey' | 'beeBread' | 'hive' | null>(null);
   const [confirmNewGame, setConfirmNewGame] = useState(false);
   const cancelNewGameRef = useRef<HTMLButtonElement>(null);
   const newGameTriggerRef = useRef<HTMLButtonElement>(null);
-  const recipePointerActivation = useRef(false);
 
+  const saveNotice = useSessionStore(state => state.notice);
   useEffect(() => {
-    if (!openRecipe && !confirmNewGame) return;
+    if (!confirmNewGame) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (confirmNewGame) closeNewGameConfirmation();
-        else setOpenRecipe(null);
-      }
-    };
-    const handleOutsidePointer = (event: PointerEvent) => {
-      if (event.target instanceof Element && !event.target.closest('.recipe-item')) {
-        setOpenRecipe(null);
-      }
+      if (event.key === 'Escape') closeNewGameConfirmation();
     };
     document.addEventListener('keydown', handleKeyDown);
-    if (openRecipe) document.addEventListener('pointerdown', handleOutsidePointer);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('pointerdown', handleOutsidePointer);
-    };
-  }, [openRecipe, confirmNewGame]);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [confirmNewGame]);
 
   useEffect(() => {
     if (confirmNewGame) cancelNewGameRef.current?.focus();
@@ -123,140 +90,7 @@ export function GameHUD() {
 
   return (
     <>
-    <div className="game-resource-toolbar" aria-label="Shared team inventory and recipes">
-      {(['pollen', 'nectar', 'water'] as const).map((resource) => (
-        <div className="resource-token" key={resource} aria-label={`${RESOURCE_PRESENTATION[resource].label}: ${inventory[resource]}`}>
-          <span className="resource-token-icon" style={{ backgroundColor: RESOURCE_PRESENTATION[resource].color }} aria-hidden="true">
-            {RESOURCE_PRESENTATION[resource].icon}
-          </span>
-          <span className="resource-token-copy">
-            <strong>{inventory[resource]}</strong>
-            <small>{RESOURCE_PRESENTATION[resource].label}</small>
-          </span>
-        </div>
-      ))}
-      {([
-        { key: 'honey', icon: '🍯', label: 'Honey', quantity: inventory.honey, recipe: [['pollen', 1], ['nectar', 1], ['water', 1]], points: 1 },
-        { key: 'beeBread', icon: '🍞', label: 'Bee bread', quantity: inventory.beeBread, recipe: [['pollen', 2], ['nectar', 3]], points: 2 },
-        { key: 'hive', icon: '⌂', label: 'Hives available', quantity: HIVE_SUPPLY - hives.length, recipe: [['honey', 2], ['beeBread', 3]], points: 0 },
-      ] as const).map((product) => {
-        const affordable = canPurchase(state, product.key);
-        const trading = turnPhase === 'trading';
-        const missing = product.key === 'honey'
-          ? missingHoneyIngredients(state)
-          : product.key === 'beeBread'
-            ? missingBreadIngredients(state)
-            : state.hives.length >= HIVE_SUPPLY
-              ? 'All hive pieces are in play.'
-              : !hiveCanBePlaced
-                ? 'No healthy empty tile is available.'
-                : inventory.honey < 2 || inventory.beeBread < 3
-                  ? `Still need ${Math.max(0, 2 - inventory.honey)} honey and ${Math.max(0, 3 - inventory.beeBread)} bee bread.`
-                  : 'Ready to place on a healthy empty garden tile.';
-        return (
-          <div
-            className="recipe-item"
-            key={product.key}
-            onMouseEnter={() => setOpenRecipe(product.key)}
-            onMouseLeave={(event) => {
-              if (
-                openRecipe === product.key &&
-                !event.currentTarget.contains(document.activeElement)
-              ) setOpenRecipe(null);
-            }}
-          >
-            <button
-              type="button"
-              className="resource-token recipe-trigger"
-              aria-label={`${product.label}: ${product.quantity}. Show recipe.`}
-              aria-expanded={openRecipe === product.key}
-              onPointerDown={() => { recipePointerActivation.current = true; }}
-              onFocus={() => {
-                if (!recipePointerActivation.current) setOpenRecipe(product.key);
-              }}
-              onClick={(event) => {
-                setOpenRecipe((open) =>
-                  open === product.key ? (event.detail === 0 ? open : null) : product.key,
-                );
-                recipePointerActivation.current = false;
-              }}
-            >
-              <span className="resource-token-icon product-icon" aria-hidden="true">{product.icon}</span>
-              <span className="resource-token-copy">
-                <strong>{product.quantity}</strong>
-                <small>{product.label}</small>
-              </span>
-            </button>
-            {openRecipe === product.key && (
-              <div className="recipe-popover" role="dialog" aria-label={`${product.label} recipe`}>
-                <div className="recipe-popover-header">
-                  <strong>{product.label}</strong>
-                  <button
-                    type="button"
-                    className="recipe-close-button"
-                    aria-label={`Close ${product.label} recipe`}
-                    onClick={() => setOpenRecipe(null)}
-                  >×</button>
-                </div>
-                <div className="recipe-ingredients">
-                  {product.recipe.map(([ingredient, amount]) => {
-                    const ingredientName = ingredient === 'beeBread'
-                      ? 'Bee bread'
-                      : ingredient[0].toUpperCase() + ingredient.slice(1);
-                    const available = ingredient === 'beeBread'
-                      ? inventory.beeBread
-                      : inventory[ingredient as keyof typeof inventory];
-                    const ingredientIcon = ingredient === 'honey'
-                      ? '🍯'
-                      : ingredient === 'beeBread'
-                        ? '🍞'
-                        : RESOURCE_PRESENTATION[ingredient as ResourceType].icon;
-                    const ingredientColor = ingredient in RESOURCE_PRESENTATION
-                      ? RESOURCE_PRESENTATION[ingredient as ResourceType].color
-                      : '#fff0c8';
-                    return (
-                      <span className="recipe-ingredient" key={ingredient}>
-                        <i style={{ backgroundColor: ingredientColor }} aria-hidden="true">{ingredientIcon}</i>
-                        <span>{ingredientName}: {amount} needed · {available} have</span>
-                      </span>
-                    );
-                  })}
-                </div>
-                <p>{product.points} {product.points === 1 ? 'point' : 'points'} when held</p>
-                <p className={affordable ? 'recipe-affordability affordable' : 'recipe-affordability'}>
-                  {affordable ? 'You can afford this.' : missing}
-                </p>
-                {product.key !== 'hive' ? (
-                  <button
-                    type="button"
-                    className="secondary-button recipe-buy-button"
-                    disabled={!trading || !affordable || pendingHivePurchase}
-                    title={!trading ? 'Trading opens after both actions.' : missing}
-                    onClick={() => state.trade(product.key)}
-                  >
-                    {trading ? `Make ${product.label.toLowerCase()}` : 'Available during trading'}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="secondary-button recipe-buy-button"
-                    disabled={!trading || !affordable || pendingHivePurchase}
-                    title={!trading ? 'Trading opens after both actions.' : missing}
-                    onClick={state.beginHivePurchase}
-                  >
-                    {pendingHivePurchase ? 'Choose a garden tile' : trading ? 'Buy a hive' : 'Available during trading'}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      <div className="resource-score" aria-label={`Team score: ${score} out of ${WINNING_SCORE}`}>
-        <strong>{score}<small> / {WINNING_SCORE}</small></strong>
-        <span>TEAM SCORE</span>
-      </div>
-    </div>
+    <InventoryToolbar />
 
     <section className="ready-panel gameplay-panel" aria-label="Game controls and team status">
       {outcome && (
@@ -301,6 +135,8 @@ export function GameHUD() {
         <div><span className="hud-label">TILES</span><strong>{tiles.length}</strong></div>
       </div>
 
+      <p className="message-line" role="status">{state.message}</p>
+      {state.error && <p className="error-message" role="alert">{state.error}</p>}
       <div className="event-card" aria-live="polite">
         <div className="event-card-heading">
           <span className="event-die">{dieResult ?? '🎲'}</span>
@@ -404,67 +240,13 @@ export function GameHUD() {
               <button type="button" className="quiet-button" onClick={state.skipCurrentAction}>Skip this action</button>
             </div>
           )}
-          <p className="message-line" aria-live="polite">{state.message}</p>
-          {state.error && <p className="error-message" role="alert">{state.error}</p>}
         </div>
       )}
 
-      {turnPhase === 'trading' && (
-        <div className={pendingHivePurchase ? 'trade-card placement-pending' : 'trade-card'}>
-          <div className="section-heading">
-            <div><span className="hud-label">TRADING</span><strong>Trade as many times as you can</strong></div>
-            <span className="held-score">{score} held points</span>
-          </div>
-          <div className="trade-options">
-            <div className="trade-option">
-              <button type="button" className="secondary-button" disabled={pendingHivePurchase || !canPurchase(state, 'honey')} onClick={() => state.trade('honey')}>
-                Make honey
-              </button>
-              <span>1 pollen + 1 nectar + 1 water</span>
-              <small>{missingHoneyIngredients(state)}</small>
-            </div>
-            <div className="trade-option">
-              <button type="button" className="secondary-button" disabled={pendingHivePurchase || !canPurchase(state, 'beeBread')} onClick={() => state.trade('beeBread')}>
-                Make bee bread
-              </button>
-              <span>2 pollen + 3 nectar</span>
-              <small>{missingBreadIngredients(state)}</small>
-            </div>
-            <div className="trade-option">
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={pendingHivePurchase || !hiveCanBeBought}
-                onClick={state.beginHivePurchase}
-              >
-                Buy a hive
-              </button>
-              <span>2 honey + 3 bee bread</span>
-              <small>
-                {pendingHivePurchase
-                  ? 'Tap a highlighted healthy tile without a hive to complete the trade.'
-                  : state.hives.length >= 15
-                    ? 'All hive pieces are in play.'
-                    : !hiveCanBePlaced
-                      ? 'No healthy empty tile is available.'
-                      : inventory.honey < 2 || inventory.beeBread < 3
-                        ? `Still need ${Math.max(0, 2 - inventory.honey)} honey and ${Math.max(0, 3 - inventory.beeBread)} bee bread.`
-                        : 'Place the hive on a healthy empty tile.'}
-              </small>
-            </div>
-          </div>
-          {pendingHivePurchase && (
-            <button type="button" className="secondary-button cancel-placement-button" onClick={state.cancelHivePurchase}>
-              Cancel placement
-            </button>
-          )}
-          {state.error && <p className="error-message" role="alert">{state.error}</p>}
-          <button type="button" className="primary-button full-width" disabled={pendingHivePurchase} onClick={state.finishTurn}>
-            Finish trading &amp; turn <span aria-hidden="true">→</span>
-          </button>
-          <p className="helper-text">Score counts only honey and bee bread still held. Buying a hive lowers the score.</p>
-        </div>
-      )}
+      {turnPhase === 'trading' && <TradePanel />}
+      <BoardDestinations />
+      <GameHelp />
+      <p className="save-status" role="status">{saveNotice ?? 'Progress saves automatically on this browser.'}</p>
 
       <div className="lower-info-grid">
         {lastCollected && (

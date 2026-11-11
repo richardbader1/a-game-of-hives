@@ -16,6 +16,15 @@ npm test
 npm run build
 ```
 
+For browser checks (desktop and touch-enabled tablet Chromium):
+
+```sh
+npx playwright install chromium
+npm run test:browser
+```
+
+On Windows PowerShell, use `npm.cmd` / `npx.cmd` if execution policy blocks the `.ps1` launchers.
+
 The playable loop includes:
 
 - Two to four named players, a connected five-tile starting garden, four starting hives, and bee/beekeeper placement.
@@ -25,7 +34,17 @@ The playable loop includes:
 - End-of-turn victory and immediate defeat checks, plus an inspectable event/action history.
 - Full-screen strategy layout with a large isometric board, mouse/touch pan and zoom, reset-to-fit framing, and persistent inventory/recipe controls.
 
-Mouse and touchscreen tile selection are supported. Product recipes are available by hover, click, or keyboard focus; purchasing remains restricted to the trading phase. Engine rules are implemented as serialisable TypeScript transitions and are tested independently from React and Three.js. Browser save/resume is not yet implemented.
+Mouse and touchscreen tile selection are supported. The expandable **Board controls** provide keyboard and screen-reader alternatives for movement, garden expansion, hive purchases and tile inspection. Tiles have distinct resource markers as well as colour. Product recipes are available by hover, click, or keyboard focus; purchasing remains restricted to the trading phase. **How to play** explains the turn sequence, protections and recipes.
+
+Started games autosave on the current browser/device. Reloading offers **Resume saved game** or a confirmed **New Game**. Resuming preserves dice events, action slots, locked beekeeper destinations and pending hive placements. Setup before starting the first turn is not saved. Unsupported/corrupt saves and blocked/full storage show a message without preventing a new game. Browser storage can be cleared by the browser; saves are not synced across devices.
+
+Both setup and gameplay use pure, serialisable TypeScript transitions. Recipes and product scores live in `src/game/data/products.ts`; legal board destinations live in `src/game/selectors.ts`; versioned save validation lives in `src/game/persistence/saveGame.ts`. The Zustand store dispatches these rules. Inventory, trading, help and keyboard board controls are separate components. The 3D scene renders on demand, and Reset view fits the projected board around the controls.
+
+## Checks and publication
+
+GitHub Actions runs unit/integration tests, a production build, and desktop/tablet browser checks on pushes and pull requests. To publish, choose **GitHub Actions** as the repository's Pages source, then manually run **Publish to GitHub Pages** for the intended branch. That workflow checks and builds the selected revision before deploying it. Configuring the workflow does not publish the local working copy.
+
+The Vite base path uses the repository name in GitHub Actions, including root hosting for a `*.github.io` repository. See [pre-graphics readiness and classroom checks](docs/pre-graphics-readiness.md) for remaining human validation before the graphical milestone.
 
 ## Sources and precedence
 

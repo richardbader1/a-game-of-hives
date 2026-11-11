@@ -1,8 +1,5 @@
 import { create } from 'zustand';
-import { STARTING_HIVE_COUNT, STARTING_TILE_COUNT, TILE_SUPPLY } from '../game/config/gameSettings';
-import { isGardenPlacementLegal } from '../game/board/legalPlacement';
 import {
-  INITIAL_INVENTORY,
   beginHivePurchase,
   cancelHivePurchase,
   completeGardenPlacement,
@@ -17,16 +14,14 @@ import {
   skipAction,
   tradeProduct,
 } from '../game/engine/gameEngine';
-import { validateHivePlacement, validatePlayers, validateStartingGarden } from '../game/engine/setupValidator';
+import { setupTransition } from '../game/engine/setupEngine';
+import { createInitialGame } from '../game/engine/initialState';
 import type {
   ActionCategory,
   CharacterType,
   GameSnapshot,
-  GardenTile,
   HexCoord,
-  Hive,
   ImprovementType,
-  Player,
   ResourceType,
 } from '../game/types';
 
@@ -57,161 +52,25 @@ interface GameActions {
 
 type GameState = GameSnapshot & GameActions;
 
-const initialState: GameSnapshot = {
-  phase: 'playerSetup',
-  players: [],
-  startingPlayerIndex: 0,
-  tiles: [],
-  hives: [],
-  beeTileId: null,
-  beekeeperTileId: null,
-  activeCharacter: 'bee',
-  selectedResource: 'pollen',
-  message: 'First, add your team of 2–4 players.',
-  error: null,
-  turnPhase: 'roll',
-  currentPlayerIndex: 0,
-  roundNumber: 1,
-  actionCategoriesUsed: [],
-  selectedAction: null,
-  selectedTileId: null,
-  inventory: { ...INITIAL_INVENTORY },
-  dieResult: null,
-  currentEvent: null,
-  eventRestriction: null,
-  pendingHivePurchase: false,
-  outcome: null,
-  eventLog: [],
-  lastCollected: null,
-};
-
 export const useGameStore = create<GameState>((set, get) => ({
-  ...initialState,
-  setPlayers: (names) => {
-    const players = names.map((name, index) => ({ id: `player-${index + 1}`, name: name.trim() }));
-    set({
-      players,
-      startingPlayerIndex: Math.min(get().startingPlayerIndex, Math.max(players.length - 1, 0)),
-      error: null,
-    });
-  },
-  setStartingPlayer: (index) => {
-    if (index >= 0 && index < get().players.length) set({ startingPlayerIndex: index });
-  },
-  beginGardenSetup: () => {
-    const validation = validatePlayers(get().players);
-    if (!validation.valid) {
-      set({ error: validation.errors[0] ?? 'Check the player names.' });
-      return;
-    }
-    set({
-      phase: 'gardenSetup',
-      tiles: [],
-      message: 'Choose a tile type, then tap a highlighted space to grow your connected garden.',
-      error: null,
-    });
-  },
-  selectResource: (resource) => set((state) => selectGameResource(state, resource)),
-  placeGardenTile: (q, r) => {
-    const { phase, tiles, selectedResource } = get();
-    if (phase !== 'gardenSetup') return;
-    if (tiles.length >= STARTING_TILE_COUNT) {
-      set({ error: 'Your starting garden has five tiles. Remove the last tile to change it.' });
-      return;
-    }
-    if (!isGardenPlacementLegal({ q, r }, tiles)) {
-      set({ error: 'Choose an empty space next to your garden.' });
-      return;
-    }
-    const used = tiles.filter((tile) => tile.resource === selectedResource).length;
-    if (used >= TILE_SUPPLY[selectedResource]) {
-      set({ error: `There are no ${selectedResource} tiles left in the supply.` });
-      return;
-    }
-    const nextTiles = [...tiles, { id: `tile-${q}-${r}`, q, r, resource: selectedResource }];
-    set({ tiles: nextTiles, error: null });
-  },
-  removeLastGardenTile: () => {
-    const { phase, tiles } = get();
-    if (phase === 'gardenSetup' && tiles.length > 0) {
-      set({ tiles: tiles.slice(0, -1), error: null });
-    }
-  },
-  beginHiveSetup: () => {
-    const validation = validateStartingGarden(get().tiles);
-    if (!validation.valid) {
-      set({ error: validation.errors[0] ?? 'Check your starting garden.' });
-      return;
-    }
-    set({
-      phase: 'hiveSetup',
-      hives: [],
-      message: 'Place four hives on four different garden tiles.',
-      error: null,
-    });
-  },
-  placeHive: (tileId) => {
-    const { phase, tiles, hives } = get();
-    if (phase !== 'hiveSetup') return;
-    if (!tiles.some((tile) => tile.id === tileId)) {
-      set({ error: 'Choose a garden tile for the hive.' });
-      return;
-    }
-    if (hives.some((hive) => hive.tileId === tileId)) {
-      set({ error: 'Each starting hive needs its own tile.' });
-      return;
-    }
-    const nextHives: Hive[] = [
-      ...hives,
-      { id: `hive-${tileId}`, tileId, damaged: false, smartHive: false },
-    ];
-    set({ hives: nextHives, error: null });
-    if (nextHives.length === STARTING_HIVE_COUNT) get().beginCharacterSetup();
-  },
-  beginCharacterSetup: () => {
-    const validation = validateHivePlacement(get().tiles, get().hives.map((hive) => hive.tileId));
-    if (!validation.valid) {
-      set({ error: validation.errors[0] ?? 'Place all four hives first.' });
-      return;
-    }
-    set({
-      phase: 'characterSetup',
-      beeTileId: null,
-      beekeeperTileId: null,
-      activeCharacter: 'bee',
-      error: null,
-    });
-  },
-  selectCharacter: (activeCharacter) => set({ activeCharacter, error: null }),
-  placeCharacter: (character, tileId) => {
-    const { phase, tiles } = get();
-    if (phase !== 'characterSetup' || !tiles.some((tile) => tile.id === tileId)) return;
-    if (character === 'bee') {
-      set({ beeTileId: tileId, activeCharacter: 'beekeeper', error: null });
-    } else {
-      set({ beekeeperTileId: tileId, error: null });
-    }
-  },
-  completeSetup: () => {
-    const state = get();
-    if (state.phase !== 'characterSetup' || !state.beeTileId || !state.beekeeperTileId) {
-      set({ error: 'Place both the bee and beekeeper before starting.' });
-      return;
-    }
-    set({
-      phase: 'ready',
-      turnPhase: 'roll',
-      currentPlayerIndex: state.startingPlayerIndex,
-      roundNumber: 1,
-      message: 'Your garden is ready! Roll the dice to begin the first turn.',
-      error: null,
-    });
-  },
+  ...createInitialGame(),
+  setPlayers: (names) => set(state => setupTransition(state, { type: 'players', names })),
+  setStartingPlayer: (index) => set(state => setupTransition(state, { type: 'starter', index })),
+  beginGardenSetup: () => set(state => setupTransition(state, { type: 'garden' })),
+  selectResource: (resource) => set(state => selectGameResource(state, resource)),
+  placeGardenTile: (q, r) => set(state => setupTransition(state, { type: 'tile', q, r, resource: state.selectedResource })),
+  removeLastGardenTile: () => set(state => setupTransition(state, { type: 'undoTile' })),
+  beginHiveSetup: () => set(state => setupTransition(state, { type: 'hives' })),
+  placeHive: (tileId) => set(state => setupTransition(state, { type: 'hive', tileId })),
+  beginCharacterSetup: () => set(state => setupTransition(state, { type: 'characters' })),
+  selectCharacter: (character) => set(state => setupTransition(state, { type: 'selectCharacter', character })),
+  placeCharacter: (character, tileId) => set(state => setupTransition(state, { type: 'character', character, tileId })),
+  completeSetup: () => set(state => setupTransition(state, { type: 'complete' })),
   rollDice: (rng = Math.random) => set((state) => rollAndResolveEvent(state, rng)),
   chooseAction: (category) => set((state) => selectAction(state, category)),
   handleBoardTile: (tileId, coord) => {
     const state = get();
-    if (state.phase !== 'ready') return;
+    if (state.phase !== 'ready' || state.outcome) return;
     if (state.turnPhase === 'eventPlacement') {
       set((current) => completeGardenPlacement(current, coord, current.selectedResource, true));
       return;
@@ -240,5 +99,5 @@ export const useGameStore = create<GameState>((set, get) => ({
   beginHivePurchase: () => set((state) => beginHivePurchase(state)),
   cancelHivePurchase: () => set((state) => cancelHivePurchase(state)),
   finishTurn: () => set((state) => finishTurn(state)),
-  reset: () => set(initialState),
+  reset: () => set(createInitialGame()),
 }));

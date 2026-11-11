@@ -34,3 +34,15 @@
 - Win at trade-phase end if `honey + 2*beeBread >= 10`.
 - Lose immediately when no healthy hives remain (even if damaged hives still exist).
 - Inventory never goes below zero.
+
+## Pre-graphics readiness
+- Returning to the selected starting player increments the round, regardless of roster index.
+- If destruction leaves only damaged tiles, the bee shelters on the nearest survivor and can move again after a legal destination is repaired/added. Forced relocation never collects resources.
+- Gameplay commands are rejected during setup and after game over; setup commands cannot restart a live game.
+- Keyboard/DOM controls use the same legal destinations and commands as canvas input, including free event placement and purchased hives.
+- Resource types remain distinguishable without colour, and textual tile inspection includes characters, damage, hives and protections.
+- Save/reload preserves resolved events, committed destinations, distinct action slots and pending purchases without rerolling/spending again.
+- Unsupported, malformed or inconsistent saves are rejected gracefully. Missing/blocked/full storage does not crash the game.
+- A full scripted game runs from manual setup to victory; each intermediate autosave passes validation.
+- Pan, zoom, touch pinch and Reset view do not alter the saved game. Long gardens fit the usable viewport without crossing the camera clipping planes.
+- CI validates tests, build and browser interactions. Publishing is a separate manually triggered workflow.

@@ -10,6 +10,7 @@ export function isGardenPlacementLegal(
   tiles: readonly GardenTile[],
   boardRadius = 3,
 ): boolean {
+  if (!Number.isSafeInteger(coord.q) || !Number.isSafeInteger(coord.r)) return false;
   if (Math.max(Math.abs(coord.q), Math.abs(coord.r), Math.abs(coord.q + coord.r)) > boardRadius) {
     return false;
   }

@@ -654,3 +654,19 @@ button.resource-token { cursor: pointer; }
 .confirmation-dialog p { margin: 12px 0 22px; color: #617267; font-size: 16px; }
 .confirmation-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .confirmation-actions > button { min-height: 44px; font-size: 14px; }
+
+/* Non-graphical readiness: accessible board alternatives and readable small screens. */
+.gameplay-destinations, .game-help { font-size: 14px; line-height: 1.5; }
+.gameplay-destinations > summary, .game-help > summary { min-height: 44px; cursor: pointer; font-weight: 700; }
+.gameplay-destinations .coordinate-buttons { display: grid; max-height: 240px; }
+.coordinate-buttons button { min-height: 44px; padding: 8px; text-align: left; }
+.accessible-board-list { padding-left: 20px; }
+.accessible-board-list li { margin-bottom: 8px; }
+.save-status { font-size: 13px; line-height: 1.5; color: #4c6051; }
+.saved-game-confirmation { display: grid; gap: 10px; }
+.recipe-popover::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
+.gameplay-panel .action-card { max-height: calc(100dvh - 150px); overflow-y: auto; }
+@media (max-width: 900px) and (max-height: 650px) {
+  .gameplay-panel { max-height: 25dvh; }
+  .gameplay-panel .action-card { max-height: 44dvh; }
+}

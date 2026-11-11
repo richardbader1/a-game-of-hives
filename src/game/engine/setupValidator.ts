@@ -1,3 +1,4 @@
+import { STARTING_HIVE_COUNT, STARTING_TILE_COUNT } from '../config/gameSettings';
 import { areAdjacent, areCollinear, hexKey } from '../board/hexCoordinates';
 import type { GardenTile, Player, SetupValidation } from '../types';
 
@@ -14,7 +15,7 @@ export function validatePlayers(players: readonly Player[]): SetupValidation {
 
 export function validateStartingGarden(tiles: readonly GardenTile[]): SetupValidation {
   const errors: string[] = [];
-  if (tiles.length !== 5) {
+  if (tiles.length !== STARTING_TILE_COUNT) {
     errors.push('Place exactly five garden tiles.');
   }
 
@@ -33,7 +34,7 @@ export function validateStartingGarden(tiles: readonly GardenTile[]): SetupValid
     errors.push('All five garden tiles must touch in one connected garden.');
   }
 
-  if (tiles.length === 5 && areCollinear(tiles)) {
+  if (tiles.length === STARTING_TILE_COUNT && areCollinear(tiles)) {
     errors.push('The starting garden cannot be one straight line.');
   }
 
@@ -65,7 +66,7 @@ export function validateHivePlacement(
   hiveTileIds: readonly string[],
 ): SetupValidation {
   const errors: string[] = [];
-  if (hiveTileIds.length !== 4) errors.push('Place four starting hives.');
+  if (hiveTileIds.length !== STARTING_HIVE_COUNT) errors.push('Place four starting hives.');
   if (new Set(hiveTileIds).size !== hiveTileIds.length) {
     errors.push('Each starting hive must be on a different tile.');
   }

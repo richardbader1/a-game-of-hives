@@ -1,3 +1,4 @@
+import { PRODUCTS, canAfford, spendIngredients, recipeText } from '../data/products';
 import { HIVE_SUPPLY, IMPROVEMENT_SUPPLY, TILE_SUPPLY, WINNING_SCORE } from '../config/gameSettings';
 import { hexDistance, hexKey, neighbors } from '../board/hexCoordinates';
 import { isGardenPlacementLegal } from '../board/legalPlacement';
@@ -37,10 +38,14 @@ const RESOURCE_LABELS: Record<ResourceType, string> = {
   water: 'water',
 };
 
+function isPlaying(state: GameSnapshot): boolean {
+  return state.phase === 'ready' && state.outcome === null;
+}
+
 const hexOrder = (a: HexCoord, b: HexCoord) => a.q - b.q || a.r - b.r;
 
 export function scoreInventory(inventory: Inventory): number {
-  return inventory.honey + inventory.beeBread * 2;
+  return inventory.honey * PRODUCTS.honey.points + inventory.beeBread * PRODUCTS.beeBread.points;
 }
 
 export function healthyHiveCount(hives: readonly Hive[]): number {
@@ -155,7 +160,7 @@ function removeTile(state: GameSnapshot, tile: GardenTile): GameSnapshot {
   const keeperTiles = [...tiles].sort(
     (a, b) => hexDistance(tile, a) - hexDistance(tile, b) || hexOrder(a, b),
   );
-  const beeDestination = safeTiles[0]?.id ?? null;
+  const beeDestination = safeTiles[0]?.id ?? keeperTiles[0]?.id ?? null;
   const keeperDestination = keeperTiles[0]?.id ?? null;
   const beeRelocated = state.beeTileId === tile.id;
   const keeperRelocated = state.beekeeperTileId === tile.id;
@@ -169,7 +174,7 @@ function removeTile(state: GameSnapshot, tile: GardenTile): GameSnapshot {
     removedHiveIds.length ? 'Its hive and improvements were lost' : '',
     beeRelocated
       ? beeDestination
-        ? 'the bee moved to the nearest safe tile'
+        ? safeTiles.length ? 'the bee moved to the nearest safe tile' : 'the bee sheltered on the nearest damaged tile; repair the garden to help it move again'
         : 'there is no safe tile for the bee'
       : '',
     keeperRelocated
@@ -323,7 +328,7 @@ export function selectAction(
   state: GameSnapshot,
   category: ActionCategory,
 ): GameSnapshot {
-  if (state.turnPhase !== 'actions' || state.actionCategoriesUsed.includes(category)) return state;
+  if (!isPlaying(state) || state.turnPhase !== 'actions' || state.actionCategoriesUsed.includes(category)) return state;
   if (state.selectedAction === 'beekeeper' && state.selectedTileId) {
     return {
       ...state,
@@ -341,7 +346,7 @@ export function selectAction(
 export function selectResource(state: GameSnapshot, resource: ResourceType): GameSnapshot {
   if (
     state.phase === 'gardenSetup' ||
-    (state.phase === 'ready' && (state.turnPhase === 'actions' || state.turnPhase === 'eventPlacement'))
+    (isPlaying(state) && (state.turnPhase === 'actions' || state.turnPhase === 'eventPlacement'))
   ) {
     return { ...state, selectedResource: resource, error: null };
   }
@@ -354,11 +359,12 @@ export function completeGardenPlacement(
   resource: ResourceType,
   freeEventPlacement = false,
 ): GameSnapshot {
+  if (!isPlaying(state)) return state;
   const allowed =
     state.turnPhase === 'eventPlacement' && freeEventPlacement
       ? true
       : state.turnPhase === 'actions' && state.selectedAction === 'garden' && !freeEventPlacement;
-  if (!allowed) return state;
+  if (!allowed || (!freeEventPlacement && state.actionCategoriesUsed.includes('garden'))) return state;
   if (remainingTileSupply(state.tiles, resource) <= 0) {
     return { ...state, error: `There are no ${resource} tiles left in the supply.` };
   }
@@ -378,7 +384,7 @@ export function completeGardenPlacement(
 }
 
 export function moveBee(state: GameSnapshot, tileId: string): GameSnapshot {
-  if (state.turnPhase !== 'actions' || state.selectedAction !== 'bee') return state;
+  if (!isPlaying(state) || state.turnPhase !== 'actions' || state.selectedAction !== 'bee' || state.actionCategoriesUsed.includes('bee')) return state;
   if (state.eventRestriction === 'noBeeMove') {
     return { ...state, error: 'Extreme weather means the bee cannot move this turn. Skip this action.' };
   }
@@ -410,7 +416,7 @@ export function moveBee(state: GameSnapshot, tileId: string): GameSnapshot {
 }
 
 export function moveBeekeeper(state: GameSnapshot, tileId: string): GameSnapshot {
-  if (state.turnPhase !== 'actions' || state.selectedAction !== 'beekeeper') return state;
+  if (!isPlaying(state) || state.turnPhase !== 'actions' || state.actionCategoriesUsed.includes('beekeeper') || state.selectedAction !== 'beekeeper') return state;
   if (state.selectedTileId) {
     return { ...state, error: 'The beekeeper has already moved for this action. Repair or improve this tile, or skip the action.' };
   }
@@ -451,7 +457,7 @@ export function performBeekeeperAction(
   state: GameSnapshot,
   action: 'repairHive' | 'repairTile' | ImprovementType,
 ): GameSnapshot {
-  if (state.turnPhase !== 'actions' || state.selectedAction !== 'beekeeper' || !state.selectedTileId) return state;
+  if (!isPlaying(state) || state.turnPhase !== 'actions' || state.actionCategoriesUsed.includes('beekeeper') || state.selectedAction !== 'beekeeper' || !state.selectedTileId) return state;
   if (!availableBeekeeperActions(state, state.selectedTileId).includes(action)) {
     return { ...state, error: 'That repair or improvement is not available on this tile.' };
   }
@@ -483,7 +489,7 @@ export function performBeekeeperAction(
 }
 
 export function skipAction(state: GameSnapshot): GameSnapshot {
-  if (state.turnPhase !== 'actions' || !state.selectedAction) return state;
+  if (!isPlaying(state) || state.turnPhase !== 'actions' || !state.selectedAction || state.actionCategoriesUsed.includes(state.selectedAction)) return state;
   const message = state.selectedAction === 'beekeeper' && state.selectedTileId
     ? 'The team passed on a repair or improvement after choosing the beekeeper destination. This uses one distinct action slot so the turn can continue.'
     : `The team voluntarily passed its ${state.selectedAction} action. This uses one distinct action slot so the turn can continue.`;
@@ -494,45 +500,38 @@ export function skipAction(state: GameSnapshot): GameSnapshot {
   );
 }
 
-export function legalHivePurchaseTiles(state: GameSnapshot): string[] {
+export function legalHivePurchaseTiles(state: Pick<GameSnapshot, 'tiles' | 'hives'>): string[] {
   return state.tiles
     .filter((tile) => !tile.damaged && !state.hives.some((hive) => hive.tileId === tile.id))
     .map((tile) => tile.id);
 }
 
-export function canPurchase(state: GameSnapshot, product: 'honey' | 'beeBread' | 'hive'): boolean {
-  if (product === 'honey') {
-    return state.inventory.pollen >= 1 && state.inventory.nectar >= 1 && state.inventory.water >= 1;
-  }
-  if (product === 'beeBread') {
-    return state.inventory.pollen >= 2 && state.inventory.nectar >= 3;
-  }
-  return state.inventory.honey >= 2 &&
-    state.inventory.beeBread >= 3 &&
-    state.hives.length < HIVE_SUPPLY &&
-    legalHivePurchaseTiles(state).length > 0;
+export function canPurchase(state: Pick<GameSnapshot, 'inventory' | 'tiles' | 'hives'>, product: 'honey' | 'beeBread' | 'hive'): boolean {
+  if (!canAfford(state.inventory, product)) return false;
+  return product !== 'hive' || (
+    state.hives.length < HIVE_SUPPLY && legalHivePurchaseTiles(state).length > 0
+  );
 }
 
 export function tradeProduct(
   state: GameSnapshot,
   product: 'honey' | 'beeBread',
 ): GameSnapshot {
-  if (state.turnPhase !== 'trading' || state.pendingHivePurchase) return state;
+  if (!isPlaying(state) || state.turnPhase !== 'trading' || state.pendingHivePurchase) return state;
   if (!canPurchase(state, product)) {
     return { ...state, error: `There are not enough resources to make ${product === 'honey' ? 'honey' : 'bee bread'}.` };
   }
-  const inventory = product === 'honey'
-    ? { ...state.inventory, pollen: state.inventory.pollen - 1, nectar: state.inventory.nectar - 1, water: state.inventory.water - 1, honey: state.inventory.honey + 1 }
-    : { ...state.inventory, pollen: state.inventory.pollen - 2, nectar: state.inventory.nectar - 3, beeBread: state.inventory.beeBread + 1 };
+  const inventory = spendIngredients(state.inventory, product);
+  inventory[product] += 1;
   return log({ ...state, inventory }, `The team made ${product === 'honey' ? '1 honey' : '1 bee bread'}.`);
 }
 
 export function beginHivePurchase(state: GameSnapshot): GameSnapshot {
-  if (state.turnPhase !== 'trading') return state;
+  if (!isPlaying(state) || state.turnPhase !== 'trading') return state;
   if (state.pendingHivePurchase) return state;
   if (state.hives.length >= HIVE_SUPPLY) return { ...state, error: 'All hive pieces are already in play.' };
-  if (state.inventory.honey < 2 || state.inventory.beeBread < 3) {
-    return { ...state, error: 'A hive costs 2 honey and 3 bee bread.' };
+  if (!canAfford(state.inventory, 'hive')) {
+    return { ...state, error: `A hive costs ${recipeText('hive')}.` };
   }
   if (legalHivePurchaseTiles(state).length === 0) {
     return { ...state, error: 'There is no healthy garden tile available for a hive.' };
@@ -541,11 +540,10 @@ export function beginHivePurchase(state: GameSnapshot): GameSnapshot {
 }
 
 export function completeHivePurchase(state: GameSnapshot, tileId: string): GameSnapshot {
-  if (state.turnPhase !== 'trading' || !state.pendingHivePurchase) return state;
+  if (!isPlaying(state) || state.turnPhase !== 'trading' || !state.pendingHivePurchase) return state;
   if (
     state.hives.length >= HIVE_SUPPLY ||
-    state.inventory.honey < 2 ||
-    state.inventory.beeBread < 3
+    !canAfford(state.inventory, 'hive')
   ) {
     return {
       ...state,
@@ -555,11 +553,7 @@ export function completeHivePurchase(state: GameSnapshot, tileId: string): GameS
   if (!legalHivePurchaseTiles(state).includes(tileId)) {
     return { ...state, error: 'Choose a healthy tile without a hive to complete this purchase.' };
   }
-  const inventory = {
-    ...state.inventory,
-    honey: state.inventory.honey - 2,
-    beeBread: state.inventory.beeBread - 3,
-  };
+  const inventory = spendIngredients(state.inventory, 'hive');
   const hive: Hive = {
     id: `hive-${state.hives.length + 1}-${tileId}`,
     tileId,
@@ -568,12 +562,12 @@ export function completeHivePurchase(state: GameSnapshot, tileId: string): GameS
   };
   return log(
     { ...state, inventory, hives: [...state.hives, hive], pendingHivePurchase: false },
-    'The team traded 2 honey and 3 bee bread for a healthy hive.',
+    `The team traded ${recipeText('hive')} for a healthy hive.`,
   );
 }
 
 export function cancelHivePurchase(state: GameSnapshot): GameSnapshot {
-  if (state.turnPhase !== 'trading' || !state.pendingHivePurchase) return state;
+  if (!isPlaying(state) || state.turnPhase !== 'trading' || !state.pendingHivePurchase) return state;
   return log(
     { ...state, pendingHivePurchase: false },
     'Hive placement was cancelled. No resources were spent.',
@@ -581,7 +575,7 @@ export function cancelHivePurchase(state: GameSnapshot): GameSnapshot {
 }
 
 export function finishTurn(state: GameSnapshot): GameSnapshot {
-  if (state.turnPhase !== 'trading' || state.outcome) return state;
+  if (!isPlaying(state) || state.turnPhase !== 'trading' || state.outcome) return state;
   if (state.pendingHivePurchase) {
     return { ...state, error: 'Place the purchased hive or cancel placement before finishing the turn.' };
   }
@@ -594,7 +588,7 @@ export function finishTurn(state: GameSnapshot): GameSnapshot {
     };
   }
   const currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
-  const roundNumber = currentPlayerIndex <= state.currentPlayerIndex
+  const roundNumber = currentPlayerIndex === state.startingPlayerIndex
     ? state.roundNumber + 1
     : state.roundNumber;
   return log(

@@ -1,10 +1,13 @@
+import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense, useEffect } from 'react';
 import { CharacterPlacement } from '../components/setup/CharacterPlacement';
 import { GardenBuilder } from '../components/setup/GardenBuilder';
 import { HivePlacement } from '../components/setup/HivePlacement';
 import { GameHUD } from '../components/ui/GameHUD';
 import type { CharacterType } from '../game/types';
-import { legalGardenPositions, movementDestinations, remainingTileSupply } from '../game/engine/gameEngine';
+import { placementCoordinates, selectableTileIds } from '../game/selectors';
+import { useSessionStore } from '../store/sessionStore';
+import { SavedGamePrompt } from '../components/setup/SavedGamePrompt';
 import { useGameStore } from '../store/gameStore';
 import { PlayerSetup } from '../components/setup/PlayerSetup';
 
@@ -20,40 +23,32 @@ const setupSteps = [
 ];
 
 export function App() {
-  const phase = useGameStore((state) => state.phase);
-  const tiles = useGameStore((state) => state.tiles);
-  const hives = useGameStore((state) => state.hives);
-  const beeTileId = useGameStore((state) => state.beeTileId);
-  const beekeeperTileId = useGameStore((state) => state.beekeeperTileId);
-  const activeCharacter = useGameStore((state) => state.activeCharacter);
-  const selectedResource = useGameStore((state) => state.selectedResource);
-  const selectedAction = useGameStore((state) => state.selectedAction);
-  const selectedTileId = useGameStore((state) => state.selectedTileId);
-  const turnPhase = useGameStore((state) => state.turnPhase);
-  const eventRestriction = useGameStore((state) => state.eventRestriction);
-  const pendingHivePurchase = useGameStore((state) => state.pendingHivePurchase);
+  const boardState = useGameStore(useShallow(state => ({
+    phase: state.phase,
+    tiles: state.tiles,
+    hives: state.hives,
+    beeTileId: state.beeTileId,
+    beekeeperTileId: state.beekeeperTileId,
+    activeCharacter: state.activeCharacter,
+    selectedResource: state.selectedResource,
+    selectedAction: state.selectedAction,
+    selectedTileId: state.selectedTileId,
+    turnPhase: state.turnPhase,
+    eventRestriction: state.eventRestriction,
+    pendingHivePurchase: state.pendingHivePurchase,
+    outcome: state.outcome,
+  })));
+  const { phase, tiles, hives, beeTileId, beekeeperTileId, activeCharacter, selectedResource, selectedTileId } = boardState;
   const placeGardenTile = useGameStore((state) => state.placeGardenTile);
   const placeHive = useGameStore((state) => state.placeHive);
   const placeCharacter = useGameStore((state) => state.placeCharacter);
   const handleBoardTile = useGameStore((state) => state.handleBoardTile);
   const currentStep = setupSteps.findIndex((step) => step.phase === phase);
   const hiveTileIds = hives.map((hive) => hive.tileId);
-  const gameSelectableTileIds =
-    turnPhase === 'actions' && selectedAction === 'bee' && eventRestriction !== 'noBeeMove'
-      ? movementDestinations(beeTileId, tiles, 'bee')
-      : turnPhase === 'actions' && selectedAction === 'beekeeper'
-      ? selectedTileId ? [] : movementDestinations(beekeeperTileId, tiles, 'beekeeper')
-        : turnPhase === 'trading' && pendingHivePurchase
-          ? tiles
-              .filter((tile) => !tile.damaged && !hives.some((hive) => hive.tileId === tile.id))
-              .map((tile) => tile.id)
-          : [];
-  const placementCoords =
-    phase === 'ready' &&
-    (turnPhase === 'eventPlacement' || (turnPhase === 'actions' && selectedAction === 'garden')) &&
-    remainingTileSupply(tiles, selectedResource) > 0
-      ? legalGardenPositions(tiles)
-      : [];
+  const gameSelectableTileIds = selectableTileIds(boardState);
+  const placementCoords = placementCoordinates(boardState);
+  const savedGame = useSessionStore(state => state.savedGame);
+  const saveNotice = useSessionStore(state => state.notice);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -120,7 +115,7 @@ export function App() {
               <div className="welcome-bee">🐝</div>
               <div className="welcome-caption">A little teamwork<br />goes a long way.</div>
             </div>
-            <PlayerSetup />
+            <div>{saveNotice && <p className="save-status" role="status">{saveNotice}</p>}{savedGame ? <SavedGamePrompt /> : <PlayerSetup />}</div>
           </div>
         ) : (
           <div className="setup-layout">
