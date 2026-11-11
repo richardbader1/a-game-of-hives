@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { SceneMotion } from './SceneMotion';
+import { Suspense, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { BoardCamera } from './BoardCamera';
 import { STARTING_TILE_COUNT } from '../../game/config/gameSettings';
@@ -123,25 +124,29 @@ export function IsometricBoard({
               />
             );
           })}
-          {tiles.map((tile) => {
-            const { x, z } = hexPosition(tile);
-            const hive = hives.find((item) => item.tileId === tile.id);
-            return tileIds.has(tile.id) && hive ? (
-              <Hive key={hive.id} position={[x, 0.16, z]} damaged={hive.damaged} smartHive={hive.smartHive} />
-            ) : null;
-          })}
-          {beeTileId && (() => {
-            const tile = tiles.find((item) => item.id === beeTileId);
-            if (!tile) return null;
-            const { x, z } = hexPosition(tile);
-            return <Bee key="bee" position={[x - 0.38, 0.33, z - 0.3]} />;
-          })()}
-          {beekeeperTileId && (() => {
-            const tile = tiles.find((item) => item.id === beekeeperTileId);
-            if (!tile) return null;
-            const { x, z } = hexPosition(tile);
-            return <Beekeeper key="beekeeper" position={[x + 0.38, 0.22, z + 0.3]} />;
-          })()}
+          <SceneMotion active={Boolean(beeTileId || beekeeperTileId)}>
+            <Suspense fallback={null}>
+              {tiles.map((tile) => {
+                const { x, z } = hexPosition(tile);
+                const hive = hives.find((item) => item.tileId === tile.id);
+                return tileIds.has(tile.id) && hive ? (
+                  <Hive key={hive.id} position={[x, 0.12, z - 0.12]} damaged={hive.damaged} smartHive={hive.smartHive} onSelect={() => selectTile(tile)} />
+                ) : null;
+              })}
+              {beeTileId && (() => {
+                const tile = tiles.find((item) => item.id === beeTileId);
+                if (!tile) return null;
+                const { x, z } = hexPosition(tile);
+                return <Bee key="bee" position={[x - 0.43, 0.22, z + 0.25]} onSelect={() => selectTile(tile)} />;
+              })()}
+              {beekeeperTileId && (() => {
+                const tile = tiles.find((item) => item.id === beekeeperTileId);
+                if (!tile) return null;
+                const { x, z } = hexPosition(tile);
+                return <Beekeeper key="beekeeper" position={[x + 0.43, 0.12, z + 0.3]} onSelect={() => selectTile(tile)} />;
+              })()}
+            </Suspense>
+          </SceneMotion>
         </group>
       </Canvas>
       {phase === 'ready' && (

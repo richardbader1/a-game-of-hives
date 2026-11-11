@@ -1,43 +1,33 @@
-import type { Vector3Tuple } from 'three';
-import { Text } from '@react-three/drei';
+import { Billboard } from '@react-three/drei';
+import { GameModel } from './GameModel';
+import { Piece, type PieceProps } from './Piece';
 
-interface HiveProps {
-  position: Vector3Tuple;
+interface HiveProps extends PieceProps {
   damaged?: boolean;
   smartHive?: boolean;
 }
 
-export function Hive({ position, damaged = false, smartHive = false }: HiveProps) {
-  return (
-    <group position={position} scale={0.78}>
-      <mesh position={[0, 0.3, 0]} castShadow>
-        <cylinderGeometry args={[0.26, 0.31, 0.48, 9]} />
-        <meshStandardMaterial color={damaged ? '#8b6555' : '#a96437'} roughness={0.88} />
-      </mesh>
-      <mesh position={[0, 0.56, 0]} castShadow>
-        <coneGeometry args={[0.34, 0.18, 9]} />
-        <meshStandardMaterial color={damaged ? '#5d4a43' : '#754526'} roughness={0.85} />
-      </mesh>
-      <mesh position={[0, 0.27, 0.31]}>
-        <circleGeometry args={[0.055, 12]} />
-        <meshBasicMaterial color="#382418" />
-      </mesh>
-      <mesh position={[0, 0.17, 0]}>
-        <boxGeometry args={[0.6, 0.07, 0.48]} />
-        <meshStandardMaterial color="#754526" />
-      </mesh>
-      {(damaged || smartHive) && (
-        <Text
-          position={[0, 0.82, 0]}
-          fontSize={0.25}
-          color={damaged ? '#a82e28' : '#2d6c48'}
-          anchorX="center"
-          anchorY="middle"
-          raycast={() => null}
-        >
-          {damaged ? '!' : 'S'}
-        </Text>
-      )}
-    </group>
-  );
+/** Show damage and protection together without replacing the GLB's vertex-colour materials. */
+function HiveBadge({ damaged, x }: { damaged: boolean; x: number }) {
+  return <Billboard name={damaged ? 'hive-damaged-indicator' : 'hive-smart-indicator'} position={[x, 0.74, 0]}>
+    <mesh><circleGeometry args={[0.12, 20]} /><meshBasicMaterial color={damaged ? '#a72f28' : '#276b4d'} /></mesh>
+    {damaged ? <>
+      <mesh position={[0, 0.025, 0.005]}><planeGeometry args={[0.028, 0.1]} /><meshBasicMaterial color="white" /></mesh>
+      <mesh position={[0, -0.055, 0.005]}><circleGeometry args={[0.017, 8]} /><meshBasicMaterial color="white" /></mesh>
+    </> : <>
+      <mesh position={[-0.032, -0.018, 0.005]} rotation={[0, 0, Math.PI / 4]}><planeGeometry args={[0.026, 0.075]} /><meshBasicMaterial color="white" /></mesh>
+      <mesh position={[0.023, 0.008, 0.005]} rotation={[0, 0, -Math.PI / 4]}><planeGeometry args={[0.026, 0.13]} /><meshBasicMaterial color="white" /></mesh>
+    </>}
+  </Billboard>;
+}
+
+export function Hive({ position, damaged = false, smartHive = false, onSelect }: HiveProps) {
+  return <Piece kind="hive" position={position} onSelect={onSelect}>
+    <group scale={0.9}><GameModel kind="hive" /></group>
+    {damaged && <mesh name="hive-damage-ring" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}>
+      <ringGeometry args={[0.34, 0.39, 24]} /><meshBasicMaterial color="#a72f28" />
+    </mesh>}
+    {damaged && <HiveBadge damaged x={smartHive ? -0.14 : 0} />}
+    {smartHive && <HiveBadge damaged={false} x={damaged ? 0.14 : 0} />}
+  </Piece>;
 }

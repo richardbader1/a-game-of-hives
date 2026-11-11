@@ -62,10 +62,10 @@ export function HexTile({
       >
         <cylinderGeometry args={[0.94, 0.94, 0.28, 6]} />
         <meshStandardMaterial
-          color={highlighted ? '#ffe29a' : color}
+          color={highlighted && !tile ? '#ffe29a' : color}
           roughness={0.82}
-          emissive={highlighted ? '#f5bc4e' : '#000000'}
-          emissiveIntensity={highlighted ? 0.16 : 0}
+          emissive={highlighted && !tile ? '#f5bc4e' : '#000000'}
+          emissiveIntensity={highlighted && !tile ? 0.16 : 0}
           transparent={!tile}
           opacity={tile ? 1 : 0.76}
         />
@@ -78,6 +78,12 @@ export function HexTile({
           opacity={tile ? 0.92 : 0.7}
         />
       </lineSegments>
+      {tile && highlighted && (
+        <mesh position={[0, 0.125, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 6]} raycast={() => null}>
+          <ringGeometry args={[0.94, 0.985, 6]} />
+          <meshBasicMaterial color="#f1a62e" />
+        </mesh>
+      )}
       {tile && <group position={[0.1, 0.15, -0.62]} rotation={[-Math.PI / 2, 0, 0]}>
         {resource === 'pollen' ? Array.from({ length: 5 }, (_, i) => (
           <mesh key={i} position={[Math.sin(i * Math.PI * 2 / 5) * 0.12, Math.cos(i * Math.PI * 2 / 5) * 0.12, 0]} raycast={() => null}>
