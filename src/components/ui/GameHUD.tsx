@@ -2,6 +2,7 @@ import { InventoryToolbar } from './InventoryToolbar';
 import { TradePanel } from './TradePanel';
 import { BoardDestinations } from './BoardDestinations';
 import { GameHelp } from './GameHelp';
+import { HelpTip } from './HelpTip';
 import { useSessionStore } from '../../store/sessionStore';
 import { useEffect, useRef, useState } from 'react';
 import { IMPROVEMENT_SUPPLY, RESOURCE_PRESENTATION, TILE_SUPPLY } from '../../game/config/gameSettings';
@@ -129,11 +130,15 @@ export function GameHUD() {
           </span>
         ))}
       </div>
+      <ol className="turn-progress" aria-label="Turn progress">
+        {(['roll', 'actions', 'trading', 'next'] as const).map((stage, index) => <li key={stage} aria-current={(turnPhase === stage || (stage === 'roll' && turnPhase === 'eventPlacement')) ? 'step' : undefined}>{index + 1}. {['Roll & event', 'Two actions', 'Trade', 'Next player'][index]}</li>)}
+      </ol>
 
       <div className="status-strip">
-        <div><span className="hud-label">HEALTHY HIVES</span><strong>{livingHives}<small> / {hives.length}</small></strong></div>
+        <div title="If no healthy hives remain, the team loses. Use your beekeeper to repair damaged hives."><span className="hud-label">HEALTHY HIVES</span><strong>{livingHives}<small> / {hives.length}</small></strong><small>{hives.length - livingHives} damaged</small></div>
         <div><span className="hud-label">TILES</span><strong>{tiles.length}</strong></div>
       </div>
+      <HelpTip label="hive health">A healthy hive doubles bee collection on its tile. Damage stops that bonus. Repair hives with your beekeeper: losing all healthy hives ends the game immediately.</HelpTip>
 
       <p className="message-line" role="status">{state.message}</p>
       {state.error && <p className="error-message" role="alert">{state.error}</p>}
@@ -146,8 +151,9 @@ export function GameHUD() {
           </div>
         </div>
         <p>{eventDescription(state)}</p>
+        <HelpTip label="environmental events">The die has six equally likely outcomes: Varroa mites, climate damage, pesticides, two types of extreme weather, or free garden growth. The event above shows this turn’s actual effect.</HelpTip>
         {turnPhase === 'roll' && (
-          <button type="button" className="primary-button full-width" onClick={() => state.rollDice()}>
+          <button data-tour="roll" type="button" className="primary-button full-width" onClick={() => state.rollDice()}>
             Roll the die <span aria-hidden="true">🎲</span>
           </button>
         )}
@@ -191,6 +197,7 @@ export function GameHUD() {
                   type="button"
                   className={selectedAction === category ? 'action-choice selected' : 'action-choice'}
                   aria-pressed={selectedAction === category}
+                  title={used ? 'Already used. Choose a different category this turn.' : selectedAction === 'beekeeper' && selectedTileId ? 'Finish the beekeeper task or skip it first.' : category === 'bee' ? 'Move in a straight line over healthy tiles and collect on landing.' : category === 'beekeeper' ? 'Move, then repair damage or install one protection for free.' : 'Add one connected garden tile from the available supply.'}
                   disabled={
                     used ||
                     Boolean(outcome) ||
@@ -218,6 +225,7 @@ export function GameHUD() {
               )) : <p className="helper-text">No repair or improvement is available here. Skip this action.</p>}
             </div>
           )}
+          {selectedAction === 'beekeeper' && <HelpTip label="protective upgrades">Smart hives block Varroa damage. Wildlife reserves prevent damaged tiles from being removed. No-spray zones allow normal collection during pesticides. Each uses a finite protection piece, with no resource cost.</HelpTip>}
           {selectedAction && (
             <div className="action-footer">
               <p className="helper-text">
@@ -264,6 +272,7 @@ export function GameHUD() {
               {selectedTile.noSprayZone ? ' · No-spray zone' : ''}
               {selectedHive ? ` · Hive ${selectedHive.damaged ? 'damaged' : 'healthy'}${selectedHive.smartHive ? ' · Smart hive' : ''}` : ''}
             </span>
+            <p>{selectedTile.damaged ? 'The bee cannot enter or cross this damaged tile. Send your beekeeper to repair it, or try another path.' : 'Landing here collects this tile’s resource, subject to the current event. A healthy hive doubles the amount.'}</p>
           </div>
         )}
         <details className="event-history">

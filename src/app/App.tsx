@@ -1,5 +1,9 @@
 import { useShallow } from 'zustand/react/shallow';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Welcome } from '../components/setup/Welcome';
+import { Tutorial } from '../components/ui/Tutorial';
+import { GameHelp, HelpButton } from '../components/ui/GameHelp';
+import { useTutorialStore } from '../store/tutorialStore';
 import { CharacterPlacement } from '../components/setup/CharacterPlacement';
 import { GardenBuilder } from '../components/setup/GardenBuilder';
 import { HivePlacement } from '../components/setup/HivePlacement';
@@ -23,6 +27,7 @@ const setupSteps = [
 ];
 
 export function App() {
+  const [welcomeSeen, setWelcomeSeen] = useState(false);
   const boardState = useGameStore(useShallow(state => ({
     phase: state.phase,
     tiles: state.tiles,
@@ -67,6 +72,7 @@ export function App() {
             <span>A Game <em>of</em> Hives</span>
           </a>
           <span className="topbar-note"><span className="status-dot" /> CO-OP GARDEN ADVENTURE</span>
+          <HelpButton />
         </header>
         <div className="game-layout">
           <div className="board-column game-board-column">
@@ -91,6 +97,7 @@ export function App() {
           </div>
           <GameHUD />
         </div>
+        <Tutorial />
       </main>
     );
   }
@@ -103,10 +110,11 @@ export function App() {
           <span>A Game <em>of</em> Hives</span>
         </a>
         <div className="topbar-note"><span className="status-dot" /> CO-OP GARDEN ADVENTURE</div>
+        {(welcomeSeen || phase !== 'playerSetup') && <HelpButton />}
       </header>
 
       <div className="page-content">
-        {phase === 'playerSetup' ? (
+        {phase === 'playerSetup' && !welcomeSeen && !savedGame ? <Welcome onStart={() => { setWelcomeSeen(true); useTutorialStore.getState().start(); }} /> : phase === 'playerSetup' ? (
           <div className="welcome-layout">
             <div className="welcome-art" aria-hidden="true">
               <div className="sun-disc" />
@@ -172,6 +180,8 @@ export function App() {
           </div>
         )}
       </div>
+      {(welcomeSeen || phase !== 'playerSetup') && <div className="setup-help"><GameHelp /></div>}
+      <Tutorial />
 
       <footer className="site-footer">
         <span>Made for curious minds &amp; happy pollinators</span>

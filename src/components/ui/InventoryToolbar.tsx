@@ -5,6 +5,7 @@ import { canPurchase, legalHivePurchaseTiles, scoreInventory } from '../../game/
 import { PRODUCTS, canAfford, ingredients, missingIngredients, type ProductType } from '../../game/data/products';
 import type { ResourceType } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
+import { HelpTip } from './HelpTip';
 
 export function InventoryToolbar() {
   const state = useGameStore(useShallow(s => ({
@@ -40,6 +41,7 @@ export function InventoryToolbar() {
             <strong>{inventory[resource]}</strong>
             <small>{RESOURCE_PRESENTATION[resource].label}</small>
           </span>
+          <HelpTip label={RESOURCE_PRESENTATION[resource].label}>Collected when your bee lands on a {resource} tile. Shared by your team and used in product trades.</HelpTip>
         </div>
       ))}
       {(Object.keys(PRODUCTS) as ProductType[]).map((key) => {

@@ -17,24 +17,10 @@ export function BoardCamera({ coords, phase, resetRequest }: { coords: HexCoord[
   useEffect(() => {
     const camera = cameraRef.current, controls = controlsRef.current;
     if (!camera || !controls || !size.width || !size.height) return;
-    const board = gl.domElement.getBoundingClientRect();
-    let left = 12, top = 12, right = size.width - 12, bottom = size.height - 12;
-    if (phase === 'ready') {
-      const panel = document.querySelector('.gameplay-panel')?.getBoundingClientRect();
-      const toolbar = document.querySelector('.game-resource-toolbar')?.getBoundingClientRect();
-      const actions = document.querySelector('.action-card')?.getBoundingClientRect();
-      const trades = document.querySelector('.trade-card > .section-heading')?.getBoundingClientRect();
-      if (toolbar) top = Math.max(top, toolbar.bottom - board.top + 12);
-      if (panel) {
-        if (size.width > 900) right = Math.min(right, panel.left - board.left - 12);
-        else top = Math.max(top, panel.bottom - board.top + 12);
-      }
-      for (const rect of [actions, trades]) if (rect) bottom = Math.min(bottom, rect.top - board.top - 12);
-      // Small screens may require panning around overlays; retain a usable framing area.
-      if (bottom - top < 100) top = Math.max(12, bottom - 100);
-    }
+    // Controls now live beside/below the canvas. Fit the actual canvas, without
+    // subtracting space for the previous fixed HUD overlays.
     const fit = fitBoard(latestCoords.current, size.width, size.height, {
-      left, top, width: Math.max(100, right - left), height: Math.max(100, bottom - top),
+      left: 12, top: 12, width: Math.max(100, size.width - 24), height: Math.max(100, size.height - 24),
     });
     const aspect = size.width / size.height;
     camera.left = -CAMERA_FRAME * aspect; camera.right = CAMERA_FRAME * aspect;

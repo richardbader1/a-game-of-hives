@@ -9,7 +9,7 @@ export function BoardDestinations() {
   const placements = placementCoordinates(state);
   const choosing = state.turnPhase === 'eventPlacement' || state.selectedAction !== null || state.pendingHivePurchase;
   return (
-    <details className="keyboard-placement gameplay-destinations">
+    <details className="keyboard-placement gameplay-destinations" open={choosing}>
       <summary>Board controls (keyboard and screen reader)</summary>
       {choosing && <div className="coordinate-buttons" aria-label="Legal destinations">
         {destinations.map(id => {

@@ -22,3 +22,5 @@ Thumbs.db
 # Browser test artifacts
 playwright-report/
 test-results/
+# Local reference inspection tools and generated contact sheets
+/.tmp/

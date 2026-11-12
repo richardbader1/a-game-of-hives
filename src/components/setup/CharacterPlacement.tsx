@@ -38,7 +38,7 @@ export function CharacterPlacement() {
         </button>
       </div>
       <p className="tip-box">
-        {activeCharacter === 'bee' ? 'Choose a tile for the bee.' : 'Choose a tile for the beekeeper.'}
+        {beeTileId && beekeeperTileId ? 'Your garden is ready! Five garden tiles, four hives, a beekeeper and a forager bee. Let’s learn your first turn.' : activeCharacter === 'bee' ? 'Your forager bee collects resources when it lands. Choose its starting tile.' : 'Your beekeeper repairs damage and installs protections. Choose its starting tile.'}
       </p>
       {error && <p className="error-message" role="alert">{error}</p>}
       <details className="keyboard-placement">
@@ -61,7 +61,7 @@ export function CharacterPlacement() {
         disabled={!beeTileId || !beekeeperTileId}
         onClick={completeSetup}
       >
-        Confirm setup &amp; start <span aria-hidden="true">→</span>
+        Start First Round <span aria-hidden="true">→</span>
       </button>
       <p className="microcopy">The team can stand together on one tile.</p>
     </section>

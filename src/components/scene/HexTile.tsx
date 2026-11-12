@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { Text } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import { RESOURCE_PRESENTATION } from '../../game/config/gameSettings';
 import { hexKey } from '../../game/board/hexCoordinates';
 import type { GardenTile, HexCoord, ResourceType } from '../../game/types';
@@ -9,6 +9,7 @@ interface HexTileProps {
   coord: HexCoord;
   tile?: GardenTile;
   highlighted?: boolean;
+  preview?: boolean;
   selectable?: boolean;
   selectedResource?: ResourceType;
   damaged?: boolean;
@@ -21,6 +22,7 @@ export function HexTile({
   coord,
   tile,
   highlighted = false,
+  preview = false,
   selectable = false,
   selectedResource = 'pollen',
   damaged = false,
@@ -62,12 +64,12 @@ export function HexTile({
       >
         <cylinderGeometry args={[0.94, 0.94, 0.28, 6]} />
         <meshStandardMaterial
-          color={highlighted && !tile ? '#ffe29a' : color}
+          color={preview ? RESOURCE_PRESENTATION[resource].color : highlighted && !tile ? '#ffe29a' : color}
           roughness={0.82}
           emissive={highlighted && !tile ? '#f5bc4e' : '#000000'}
           emissiveIntensity={highlighted && !tile ? 0.16 : 0}
           transparent={!tile}
-          opacity={tile ? 1 : 0.76}
+          opacity={tile ? 1 : preview ? 0.45 : 0.76}
         />
       </mesh>
       <lineSegments position={[0, 0.125, 0]} geometry={edges}>
@@ -106,30 +108,20 @@ export function HexTile({
         </mesh>
       )}
       {tile && damaged && (
-        <Text
+        <Html
           position={[0, 0.34, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          fontSize={0.29}
-          color="#8f302a"
-          anchorX="center"
-          anchorY="middle"
-          raycast={() => null}
+          center zIndexRange={[8, 0]} style={{ pointerEvents: 'none' }}
         >
-          !
-        </Text>
+          <span className="tile-damage-badge" aria-hidden="true">!</span>
+        </Html>
       )}
       {tile && !damaged && (wildlifeReserve || noSprayZone) && (
-        <Text
+        <Html
           position={[0, 0.32, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          fontSize={0.11}
-          color="#244d37"
-          anchorX="center"
-          anchorY="middle"
-          raycast={() => null}
+          center zIndexRange={[8, 0]} style={{ pointerEvents: 'none' }}
         >
-          {wildlifeReserve && noSprayZone ? 'RESERVE · NO SPRAY' : wildlifeReserve ? 'RESERVE' : 'NO SPRAY'}
-        </Text>
+          <span className="tile-protection-badge" aria-hidden="true">{wildlifeReserve ? '🌿' : ''}{noSprayZone ? '🛡' : ''}</span>
+        </Html>
       )}
     </group>
   );

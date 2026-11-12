@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import '../styles/global.css';
+import '../styles/gtac.css';
 
 const stopPersistence = initializePersistence();
 if (import.meta.hot) import.meta.hot.dispose(stopPersistence);

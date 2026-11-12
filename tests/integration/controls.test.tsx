@@ -50,6 +50,7 @@ it('opens recipes by keyboard and prevents purchasing before trading', async () 
   const user = userEvent.setup();
   useGameStore.setState({ inventory: { pollen: 5, nectar: 5, water: 5, honey: 0, beeBread: 0 } });
   render(<InventoryToolbar />);
+  await user.tab(); await user.tab(); await user.tab(); // Focus the labelled resource counters first.
   await user.tab();
   expect(screen.getByRole('dialog', { name: 'Honey recipe' })).toBeTruthy();
   expect((screen.getByRole('button', { name: 'Available during trading' }) as HTMLButtonElement).disabled).toBe(true);

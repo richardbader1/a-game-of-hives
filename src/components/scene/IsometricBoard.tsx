@@ -10,6 +10,9 @@ import { Bee } from './Bee';
 import { Beekeeper } from './Beekeeper';
 import { HexTile, hexPosition } from './HexTile';
 import { Hive } from './Hive';
+import { Html } from '@react-three/drei';
+import { useTutorialStore } from '../../store/tutorialStore';
+import { PlacementPreview } from './PlacementPreview';
 
 interface IsometricBoardProps {
   phase: GamePhase;
@@ -55,6 +58,7 @@ export function IsometricBoard({
   onGameTile,
 }: IsometricBoardProps) {
   const [resetRequest, setResetRequest] = useState(0);
+  const guided = useTutorialStore(state => state.active);
   const tileIds = new Set(tiles.map((tile) => tile.id));
   const gardenSlotsAvailable = tiles.length < STARTING_TILE_COUNT;
   const gameCoordMap = new Map(
@@ -63,6 +67,11 @@ export function IsometricBoard({
   );
   const visibleCoords: HexCoord[] =
     phase === 'gardenSetup' ? boardCoords : [...gameCoordMap.values()];
+  const recommended = guided ? phase === 'gardenSetup' && gardenSlotsAvailable
+    ? [{ q: 0, r: 0 }, { q: 1, r: 0 }, { q: 1, r: 1 }, { q: 0, r: 1 }, { q: -1, r: 1 }, ...visibleCoords].find(coord => isGardenPlacementLegal(coord, tiles))
+    : phase === 'hiveSetup' ? tiles.find(tile => !tile.damaged && !hives.some(hive => hive.tileId === tile.id))
+    : phase === 'characterSetup' && !(beeTileId && beekeeperTileId) ? tiles[0]
+    : phase === 'ready' ? placementCoords[0] ?? tiles.find(tile => gameSelectableTileIds.includes(tile.id)) : undefined : undefined;
   function selectTile(coord: HexCoord) {
     const tile = tiles.find((item) => hexKey(item) === hexKey(coord));
     if (phase === 'ready') {
@@ -82,7 +91,7 @@ export function IsometricBoard({
       aria-label="Interactive isometric garden board"
     >
       <Canvas frameloop="demand" shadows dpr={[1, 1.5]} gl={{ antialias: true, alpha: false }}>
-        <color attach="background" args={['#eaf1e4']} />
+        <color attach="background" args={['#F9F6E7']} />
         <BoardCamera coords={phase === 'gardenSetup' ? boardCoords : tiles} phase={phase} resetRequest={resetRequest} />
         <ambientLight intensity={1.35} />
         <directionalLight position={[5, 10, 6]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
@@ -116,6 +125,7 @@ export function IsometricBoard({
                 tile={tile}
                 selectable={selectable}
                 highlighted={highlighted}
+                preview={Boolean(recommended && hexKey(recommended) === hexKey(coord) && !tile)}
                 selectedResource={selectedResource}
                 onSelect={selectTile}
                 damaged={Boolean(tile?.damaged)}
@@ -124,6 +134,14 @@ export function IsometricBoard({
               />
             );
           })}
+          {recommended && (() => {
+            const { x, z } = hexPosition(recommended);
+            return <group position={[x, 0.22, z]}>
+              <mesh rotation={[-Math.PI / 2, 0, Math.PI / 6]} raycast={() => null}><ringGeometry args={[0.96, 1.06, 6]} /><meshBasicMaterial color="#FFCD1F" /></mesh>
+              {(phase === 'hiveSetup' || phase === 'characterSetup') && <Suspense fallback={null}><PlacementPreview kind={phase === 'hiveSetup' ? 'hive' : activeCharacter} /></Suspense>}
+              <Html position={[0, 1.1, 0]} center zIndexRange={[8, 0]} style={{ pointerEvents: 'none' }}><span className="placement-ghost" aria-hidden="true">{phase === 'hiveSetup' ? '⌂ Hive here?' : phase === 'characterSetup' ? activeCharacter === 'bee' ? '🐝 Bee here?' : '🧑‍🌾 Beekeeper here?' : '↓ Try this hex'}</span></Html>
+            </group>;
+          })()}
           <SceneMotion active={Boolean(beeTileId || beekeeperTileId)}>
             <Suspense fallback={null}>
               {tiles.map((tile) => {

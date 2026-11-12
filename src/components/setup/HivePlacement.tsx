@@ -1,7 +1,18 @@
 import { STARTING_HIVE_COUNT } from '../../game/config/gameSettings';
 import { useGameStore } from '../../store/gameStore';
+import { useEffect, useRef } from 'react';
+import { useTutorialStore } from '../../store/tutorialStore';
 
 export function HivePlacement() {
+  const demonstrated = useRef(false);
+  useEffect(() => {
+    const state = useGameStore.getState();
+    if (!demonstrated.current && useTutorialStore.getState().active && state.phase === 'hiveSetup' && !state.hives.length) {
+      demonstrated.current = true;
+      const tile = state.tiles.find(tile => !tile.damaged);
+      if (tile) state.placeHive(tile.id);
+    }
+  }, []);
   const tiles = useGameStore((state) => state.tiles);
   const hives = useGameStore((state) => state.hives);
   const hiveTileIds = hives.map((hive) => hive.tileId);
@@ -21,7 +32,7 @@ export function HivePlacement() {
         </div>
         <span>hives placed</span>
       </div>
-      <p className="tip-box">Tap a highlighted garden tile to place a wooden hive.</p>
+      <p className="tip-box">{demonstrated.current ? 'We placed one hive as an example. Place the remaining three on different highlighted tiles.' : 'Tap a highlighted garden tile to place a wooden hive.'} A healthy hive doubles collection on its tile.</p>
       {error && <p className="error-message" role="alert">{error}</p>}
       <details className="keyboard-placement">
         <summary>Keyboard-accessible placement</summary>
