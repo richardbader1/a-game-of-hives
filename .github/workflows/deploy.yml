@@ -2,7 +2,7 @@ name: Publish to GitHub Pages
 on:
   push:
     branches:
-      - development
+      - Milestone-3
   workflow_dispatch:
 permissions:
   contents: read
