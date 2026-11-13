@@ -22,7 +22,7 @@ export function GameHelp() {
     <button type="button" className="secondary-button" onClick={event => { useTutorialStore.getState().start(); event.currentTarget.closest('details')?.removeAttribute('open'); }}>Restart guided tutorial here</button>
     <p>Work together. Hold {WINNING_SCORE} points at the end of a turn to save the queen. You lose as soon as no healthy hives remain.</p>
     <ol>
-      <li>Roll and resolve the event. A six gives a free garden tile before your actions.</li>
+      <li>Roll and resolve the event. Both Improvement faces give a free garden tile before your actions.</li>
       <li>Choose two different actions: bee, beekeeper, or garden.</li>
       <li>Make any affordable trades, then finish the turn.</li>
     </ol>

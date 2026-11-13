@@ -34,15 +34,15 @@ export function tutorialStep(s: GameSnapshot, reviewed: string[]): TutorialStep 
   if (reviewed.includes('turn-finished') && !reviewed.includes('team-turn')) return step('team-turn', 'Pass the turn to your teammate', 'Great work! Each player takes a turn before the round ends. Your resources and garden are shared.', '.turn-players', 'Select Next, then help your teammate take their turn.', true);
   const turn = `${s.roundNumber}-${s.currentPlayerIndex}`;
   if (s.turnPhase === 'roll') {
-    return step('roll', 'Discover what the garden needs', 'Each turn begins with a dice roll that tells us what happens in the environment.', '[data-tour="roll"]', 'Select Roll the die.');
+    return step('roll', 'Discover what the garden needs', 'Each turn begins with a dice roll that tells us what happens in the environment.', '[data-tour="roll"]', 'Select Roll Dice.');
   }
   if (s.currentEvent && !reviewed.includes(`event-${turn}`)) {
     // Keep the resolved result even if students try an action before reading Next.
     const rollIndex = s.eventLog.findIndex(entry => entry.includes(`rolled ${s.dieResult}:`));
     const result = rollIndex > 0 ? s.eventLog[rollIndex - 1] : eventDescription(s);
-    return step(`event-${turn}`, eventName(s.currentEvent), `${ecology[s.currentEvent]} ${eventDescription(s)}`, '.event-card', `The actual result: ${result}`, true);
+    return step(`event-${turn}`, eventName(s.currentEvent), `${ecology[s.currentEvent]} ${eventDescription(s)}`, '.dice-panel', `The actual result: ${result}`, true);
   }
-  if (s.turnPhase === 'eventPlacement') return step('free-tile', 'Grow more bee habitat', 'You rolled a six: place one free tile before using either action.', '.gameplay-resource-picker', 'Choose a resource type, then a highlighted neighboring space.');
+  if (s.turnPhase === 'eventPlacement') return step('free-tile', 'Grow more bee habitat', 'You rolled Improvement: place one free tile before using either action.', '.gameplay-resource-picker', 'Choose a resource type, then a highlighted neighboring space.');
   if (s.lastCollected && !reviewed.includes(`resources-${turn}`)) return step(`resources-${turn}`, `Collected: +${s.lastCollected.amount} ${s.lastCollected.resource}`, 'Your team shares these resources. In this game, trading pollen, nectar and water makes honey and bee bread, which earn held points.', '.game-resource-toolbar', 'Look at the labelled counters, then select Next.', true);
   if (s.turnPhase === 'trading') {
     const affordable = canPurchase(s, 'honey') || canPurchase(s, 'beeBread');
@@ -87,6 +87,9 @@ export function Tutorial() {
   const game = useGameStore();
   const tour = useTutorialStore();
   const step = tutorialStep(game, tour.reviewed);
+  useEffect(() => {
+    if (game.eventNotice && tour.active) tour.acknowledge(`event-${game.roundNumber}-${game.currentPlayerIndex}`);
+  }, [game.eventNotice?.id, tour.active]);
   const viewingHistory = tour.reviewIndex !== null;
   const rect = useTargetBounds(tour.active && !viewingHistory ? step.target : '');
   const cardRef = useRef<HTMLElement>(null);
@@ -101,7 +104,7 @@ export function Tutorial() {
     const observer = new ResizeObserver(update);
     observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, [tour.active, step.id, viewingHistory]);
+  }, [tour.active, step.id, viewingHistory, Boolean(game.diceAnimation), Boolean(game.eventNotice)]);
   useEffect(() => useGameStore.subscribe((next, previous) => {
     if (useTutorialStore.getState().active && previous.turnPhase === 'trading' && next.turnPhase === 'roll') {
       useTutorialStore.getState().acknowledge(next.roundNumber > previous.roundNumber ? 'round-finished' : 'turn-finished');
@@ -119,7 +122,7 @@ export function Tutorial() {
     document.body.classList.toggle('tutorial-active', tour.active);
     return () => document.body.classList.remove('tutorial-active');
   }, [tour.active]);
-  if (!tour.active) return null;
+  if (!tour.active || game.diceAnimation || game.eventNotice) return null;
   const shown = viewingHistory ? tour.history[tour.reviewIndex!] ?? step : step;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;

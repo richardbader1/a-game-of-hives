@@ -3,13 +3,12 @@ import { TradePanel } from './TradePanel';
 import { BoardDestinations } from './BoardDestinations';
 import { GameHelp } from './GameHelp';
 import { HelpTip } from './HelpTip';
+import { DicePanel } from './DicePanel';
 import { useSessionStore } from '../../store/sessionStore';
 import { useEffect, useRef, useState } from 'react';
 import { IMPROVEMENT_SUPPLY, RESOURCE_PRESENTATION, TILE_SUPPLY } from '../../game/config/gameSettings';
 import {
   availableBeekeeperActions,
-  eventDescription,
-  eventName,
   healthyHiveCount,
   movementDestinations,
   remainingTileSupply,
@@ -43,11 +42,9 @@ export function GameHUD() {
     selectedTileId,
     tiles,
     hives,
-    dieResult,
     currentEvent,
     eventRestriction,
     outcome,
-    eventLog,
     lastCollected,
   } = state;
   const currentPlayer = players[currentPlayerIndex];
@@ -140,38 +137,19 @@ export function GameHUD() {
       </div>
       <HelpTip label="hive health">A healthy hive doubles bee collection on its tile. Damage stops that bonus. Repair hives with your beekeeper: losing all healthy hives ends the game immediately.</HelpTip>
 
-      <p className="message-line" role="status">{state.message}</p>
+      {!state.diceAnimation && !(currentEvent && !selectedAction && actionCategoriesUsed.length === 0) && <p className="message-line" role="status">{state.message}</p>}
       {state.error && <p className="error-message" role="alert">{state.error}</p>}
-      <div className="event-card" aria-live="polite">
-        <div className="event-card-heading">
-          <span className="event-die">{dieResult ?? '🎲'}</span>
-          <div>
-            <span className="hud-label">{currentEvent ? `DICE · ${eventName(currentEvent)}` : 'ENVIRONMENTAL EVENT'}</span>
-            <strong>{currentEvent ? eventName(currentEvent) : 'What will happen today?'}</strong>
-          </div>
-        </div>
-        <p>{eventDescription(state)}</p>
-        <HelpTip label="environmental events">The die has six equally likely outcomes: Varroa mites, climate damage, pesticides, two types of extreme weather, or free garden growth. The event above shows this turn’s actual effect.</HelpTip>
-        {turnPhase === 'roll' && (
-          <button data-tour="roll" type="button" className="primary-button full-width" onClick={() => state.rollDice()}>
-            Roll the die <span aria-hidden="true">🎲</span>
-          </button>
-        )}
-        {eventRestriction && (
-          <p className="restriction-note">
-            {eventRestriction === 'waterOnly'
-              ? 'Restriction: collect water only, unless the bee lands on a no-spray zone.'
-              : 'Restriction: the bee cannot move this turn.'}
-          </p>
-        )}
-        {turnPhase === 'eventPlacement' && (
+      <DicePanel />
+      {turnPhase === 'eventPlacement' && (
+        <section className="free-garden-placement" aria-label="Free garden tile placement">
+          <h3>Add a garden tile</h3>
           <ResourceChoices
             selected={state.selectedResource}
             onSelect={state.selectResource}
             tiles={tiles}
           />
-        )}
-      </div>
+        </section>
+      )}
 
       {turnPhase === 'actions' && (
         <div className="action-card">
@@ -275,12 +253,6 @@ export function GameHUD() {
             <p>{selectedTile.damaged ? 'The bee cannot enter or cross this damaged tile. Send your beekeeper to repair it, or try another path.' : 'Landing here collects this tile’s resource, subject to the current event. A healthy hive doubles the amount.'}</p>
           </div>
         )}
-        <details className="event-history">
-          <summary>Event and action history ({eventLog.length})</summary>
-          {eventLog.length ? (
-            <ol>{eventLog.map((entry, index) => <li key={`${index}-${entry}`}>{entry}</li>)}</ol>
-          ) : <p>Game events and actions will appear here.</p>}
-        </details>
       </div>
 
       <div className="supply-footnote">

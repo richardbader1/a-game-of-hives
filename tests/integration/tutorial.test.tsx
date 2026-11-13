@@ -11,6 +11,8 @@ import { useTutorialStore } from '../../src/store/tutorialStore';
 import { readyGame } from '../fixtures/game';
 import { rollAndResolveEvent } from '../../src/game/engine/gameEngine';
 
+vi.mock('../../src/components/scene/DiceCanvas', () => ({ default: () => null }));
+
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
   useGameStore.setState(readyGame());

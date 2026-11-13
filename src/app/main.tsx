@@ -4,6 +4,8 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import '../styles/global.css';
 import '../styles/gtac.css';
+import '../styles/dice.css';
+import '../styles/dice-effects.css';
 
 const stopPersistence = initializePersistence();
 if (import.meta.hot) import.meta.hot.dispose(stopPersistence);

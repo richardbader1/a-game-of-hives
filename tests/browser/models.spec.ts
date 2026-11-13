@@ -57,7 +57,7 @@ test('lightweight models preserve colours, shadows, and mouse/touch piece pickin
   await page.getByRole('button', { name: 'Reset view' }).click();
   const report = (await sceneReport(page))!;
   expect(report.pieces.every(piece => piece.vertexColours && piece.diffuseDefaults && piece.shadows)).toBe(true);
-  expect(requested).toHaveLength(3);
+  await expect.poll(() => requested.length).toBe(4); // Board pieces plus the custom environmental die.
   expect(requested.every(url => !url.includes('_detailed'))).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('models-normal.png') });
   const tap = async (point: { x: number; y: number }) => {

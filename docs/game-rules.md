@@ -24,10 +24,10 @@ This document is the coding source of truth. See `confirmed-decisions.md` and `P
 | 2 | Climate change: randomly target an existing garden tile; apply tile damage with wildlife-reserve anti-removal check. |
 | 3 | Pesticides: only water may be collected this turn, except on a no-spray-protected tile. |
 | 4 | Extreme weather: no Bee Action this turn. |
-| 5 | Extreme weather: randomly target an existing hive and apply damage (smart-hive does not block). |
+| 5 | Improvement: choose and place one free new garden tile before taking actions. |
 | 6 | Garden: choose and place one free new garden tile before taking actions. |
 
-Each face is 1/6. Eligible random targets include healthy and damaged objects; sample uniformly. Resolve protection after selection, never silently reroll a protected target. No target/no legal placement -> explain that the event has no effect.
+Each face is 1/6. Faces 5 and 6 are both Improvement, giving garden growth a combined probability of 2/6. This mapping was explicitly approved by the designer on 13 November 2026 to match the custom GTAC GLB. The former face-5 weather hive-damage outcome is no longer rolled; already-resolved outcomes in older saves remain intact. Eligible random targets include healthy and damaged objects; sample uniformly. Resolve protection after selection, never silently reroll a protected target. No target/no legal placement -> explain that the event has no effect.
 
 ## Damage and protection
 - Hive: healthy -> damaged -> removed on next successful damage.

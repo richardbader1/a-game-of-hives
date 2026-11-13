@@ -13,6 +13,8 @@ import { Hive } from './Hive';
 import { Html } from '@react-three/drei';
 import { useTutorialStore } from '../../store/tutorialStore';
 import { PlacementPreview } from './PlacementPreview';
+import { useDiceEffects } from '../effects/DiceEffectsManager';
+import { BoardEffectsPass } from '../effects/BoardEffectsPass';
 
 interface IsometricBoardProps {
   phase: GamePhase;
@@ -58,6 +60,7 @@ export function IsometricBoard({
   onGameTile,
 }: IsometricBoardProps) {
   const [resetRequest, setResetRequest] = useState(0);
+  const effects = useDiceEffects();
   const guided = useTutorialStore(state => state.active);
   const tileIds = new Set(tiles.map((tile) => tile.id));
   const gardenSlotsAvailable = tiles.length < STARTING_TILE_COUNT;
@@ -93,6 +96,7 @@ export function IsometricBoard({
       <Canvas frameloop="demand" shadows dpr={[1, 1.5]} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={['#F9F6E7']} />
         <BoardCamera coords={phase === 'gardenSetup' ? boardCoords : tiles} phase={phase} resetRequest={resetRequest} />
+        {effects.effect && <BoardEffectsPass effect={effects.effect} reducedMotion={effects.reducedMotion} projectTargets={effects.projectTargets} registerInvalidation={effects.registerInvalidation} />}
         <ambientLight intensity={1.35} />
         <directionalLight position={[5, 10, 6]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
         <group position={[0, -0.38, 0]}>

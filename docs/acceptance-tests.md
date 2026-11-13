@@ -20,7 +20,7 @@
 
 ## Events and protection
 - Random target selection includes damaged candidates and is deterministic under seeded test RNG.
-- A smart hive blocks Varroa but not extreme-weather hive damage.
+- A smart hive blocks Varroa. Both Improvement faces give the same free garden placement; the single Weather face prevents bee movement for the turn. Already-resolved weather damage in legacy saves is preserved.
 - Wildlife reserve prevents removal on repeated damage but does not prevent first damage.
 - No target available gives explanatory no-op.
 - Destroyed tile removes attached hive/improvements and relocates tokens deterministically.

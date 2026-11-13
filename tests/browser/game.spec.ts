@@ -28,8 +28,8 @@ test('manual setup is usable through DOM controls and renders the board', async 
   await page.getByRole('button', { name: 'Place beekeeper at 0, 0', exact: true }).click();
   await page.getByRole('button', { name: 'Start First Round' }).click();
   await expect(page.getByRole('heading', { name: 'Sam’s turn' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Roll the die' })).toBeVisible();
-  await expect(page.locator('canvas')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Roll Dice' })).toBeVisible();
+  await expect(page.locator('.board-canvas canvas')).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: 'Resume saved game' })).toBeVisible();
   await page.getByRole('button', { name: 'Resume saved game' }).click();
@@ -44,7 +44,7 @@ test('reload preserves the committed beekeeper action and keyboard movement cont
   await page.goto('/');
   await page.getByRole('button', { name: 'Resume saved game' }).click();
   await expect(page.getByText('The destination is locked.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Roll the die' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Roll Dice' })).toBeDisabled();
   await page.getByRole('button', { name: 'Create no-spray zone' }).click();
   await page.getByRole('button', { name: 'Bee', exact: true }).click();
   const destination = page.getByRole('button', { name: /Move bee to Water at 2, 0/ });
@@ -92,7 +92,7 @@ test('a full elongated garden renders and camera gestures preserve game state', 
   await page.addInitScript(({ key, save }) => localStorage.setItem(key, save), { key: SAVE_KEY, save });
   await page.goto('/'); await page.getByRole('button', { name: 'Resume saved game' }).click();
   await page.getByRole('button', { name: 'Reset view' }).click();
-  const canvas = page.locator('canvas');
+  const canvas = page.locator('.board-canvas canvas');
   await expect(canvas).toBeVisible();
   const bounds = (await canvas.boundingBox())!;
   const x = bounds.x + bounds.width * 0.2, y = bounds.y + bounds.height * 0.6;

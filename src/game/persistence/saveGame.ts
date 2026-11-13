@@ -1,4 +1,5 @@
 import type { GameSnapshot } from '../types';
+import { DIE_EVENTS } from '../config/dice';
 import { createInitialGame } from '../engine/initialState';
 import { HIVE_SUPPLY, IMPROVEMENT_SUPPLY, TILE_SUPPLY, WINNING_SCORE } from '../config/gameSettings';
 import { healthyHiveCount, scoreInventory } from '../engine/gameEngine';
@@ -7,7 +8,6 @@ export const SAVE_KEY = 'a-game-of-hives.save';
 export const SAVE_VERSION = 1;
 const resources = ['pollen', 'nectar', 'water'];
 const categories = ['bee', 'beekeeper', 'garden'];
-const events = ['varroa', 'climate', 'pesticides', 'movementRestriction', 'extremeWeatherDamage', 'garden'];
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const text = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 1000;
 const count = (v: unknown): v is number => Number.isSafeInteger(v) && (v as number) >= 0;
@@ -55,7 +55,10 @@ export function isPlayableSnapshot(value: unknown): value is GameSnapshot {
   if (s.turnPhase === 'roll') {
     if (s.dieResult !== null || s.currentEvent !== null || s.eventRestriction !== null || s.actionCategoriesUsed.length) return false;
   } else {
-    if (!count(s.dieResult) || s.dieResult < 1 || s.dieResult > 6 || s.currentEvent !== events[s.dieResult - 1]) return false;
+    if (!count(s.dieResult) || s.dieResult < 1 || s.dieResult > 6) return false;
+    // Old saves may contain an already-resolved weather-damage result on face 5.
+    // Preserve that result rather than rerolling, undoing damage or rejecting the save.
+    if (s.currentEvent !== DIE_EVENTS[s.dieResult - 1] && !(s.dieResult === 5 && s.currentEvent === 'extremeWeatherDamage')) return false;
     const restriction = s.currentEvent === 'pesticides' ? 'waterOnly' : s.currentEvent === 'movementRestriction' ? 'noBeeMove' : null;
     if (s.eventRestriction !== restriction) return false;
   }

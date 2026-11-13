@@ -232,11 +232,12 @@ describe('environment, damage, and repairs', () => {
     expect(result.turnPhase).toBe('actions');
   });
 
-  it('applies extreme-weather hive damage even to a smart hive', () => {
+  it('uses the first Improvement face for free garden growth without damaging hives', () => {
     const state = game({ hives: hives.map((hive, index) => index === 0 ? { ...hive, smartHive: true } : hive) });
     const result = rollAndResolveEvent(state, fixedRoll(5));
-    expect(result.hives[0].damaged).toBe(true);
-    expect(result.message).toContain('damaged a hive');
+    expect(result.hives).toEqual(state.hives);
+    expect(result.currentEvent).toBe('garden');
+    expect(result.turnPhase).toBe('eventPlacement');
   });
 
   it('destroys a hive on the second hit and randomly targets damaged hives too', () => {
@@ -259,13 +260,13 @@ describe('environment, damage, and repairs', () => {
     expect(result.turnPhase).toBe('ended');
   });
 
-  it('uses the six die faces for their six different event outcomes', () => {
+  it('maps the six equal die faces to the five supplied symbols', () => {
     const expected = [
       'varroa',
       'climate',
       'pesticides',
       'movementRestriction',
-      'extremeWeatherDamage',
+      'garden',
       'garden',
     ];
     expected.forEach((event, index) => {

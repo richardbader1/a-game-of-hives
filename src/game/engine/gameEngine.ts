@@ -1,4 +1,5 @@
 import { PRODUCTS, canAfford, spendIngredients, recipeText } from '../data/products';
+import { DIE_EVENTS } from '../config/dice';
 import { HIVE_SUPPLY, IMPROVEMENT_SUPPLY, TILE_SUPPLY, WINNING_SCORE } from '../config/gameSettings';
 import { hexDistance, hexKey, neighbors } from '../board/hexCoordinates';
 import { isGardenPlacementLegal } from '../board/legalPlacement';
@@ -237,14 +238,7 @@ export function rollAndResolveEvent(
 ): GameSnapshot {
   if (state.phase !== 'ready' || state.turnPhase !== 'roll' || state.outcome) return state;
   const dieResult = Math.min(6, Math.floor(Math.max(0, rng()) * 6) + 1);
-  const currentEvent: EnvironmentalEvent = [
-    'varroa',
-    'climate',
-    'pesticides',
-    'movementRestriction',
-    'extremeWeatherDamage',
-    'garden',
-  ][dieResult - 1] as EnvironmentalEvent;
+  const currentEvent = DIE_EVENTS[dieResult - 1];
   let next: GameSnapshot = {
     ...state,
     dieResult,

@@ -23,7 +23,7 @@ test('welcome, guided placement and first round work on desktop and touch layout
   await page.screenshot({ path: testInfo.outputPath('guided-garden.png'), fullPage: true });
   // Hit the recommended hex itself while the tutorial is open, including touch.
   // This verifies that the spotlight and translucent preview cannot eat a gesture.
-  await page.locator('canvas').scrollIntoViewIfNeeded();
+  await page.locator('.board-canvas canvas').scrollIntoViewIfNeeded();
   const firstHex = await page.evaluate(async () => {
     const fiberPath = '/node_modules/.vite/deps/@react-three_fiber.js';
     const { _roots } = await import(/* @vite-ignore */ fiberPath);
@@ -49,9 +49,9 @@ test('welcome, guided placement and first round work on desktop and touch layout
   await page.getByRole('button', { name: 'Place bee at 0, 0', exact: true }).click();
   await page.getByRole('button', { name: 'Place beekeeper at 0, 0', exact: true }).click();
   await page.getByRole('button', { name: 'Start First Round' }).click();
-  await page.getByRole('button', { name: 'Roll the die' }).click();
-  await expect(page.getByRole('heading', { name: 'Varroa mite', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Roll Dice' }).click();
+  await expect(page.getByRole('heading', { name: 'Varroa mite!', exact: true })).toBeVisible();
+  await expect(page.locator('.dice-event-notice')).toHaveCount(0, { timeout: 6000 });
   await page.getByRole('button', { name: 'Bee', exact: true }).click();
   await page.getByRole('button', { name: /Move bee to Nectar at 1, 0/ }).click();
   await expect(page.getByRole('heading', { name: 'Collected: +2 nectar' })).toBeVisible();
@@ -61,8 +61,9 @@ test('welcome, guided placement and first round work on desktop and touch layout
   await page.getByRole('button', { name: 'Repair hive', exact: true }).click();
   await page.getByRole('button', { name: 'Finish trading & turn' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByRole('button', { name: 'Roll the die' }).click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Roll Dice' }).click();
+  await expect(page.getByRole('heading', { name: 'Varroa mite!', exact: true })).toBeVisible();
+  await expect(page.locator('.dice-event-notice')).toHaveCount(0, { timeout: 6000 });
   for (const category of ['Bee', 'Garden']) {
     await page.getByRole('button', { name: category, exact: true }).click();
     await page.getByRole('button', { name: 'Skip this action' }).click();

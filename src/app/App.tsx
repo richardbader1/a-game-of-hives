@@ -2,6 +2,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Welcome } from '../components/setup/Welcome';
 import { Tutorial } from '../components/ui/Tutorial';
+import { EventNotice } from '../components/ui/EventNotice';
+import { DiceEffectsManager } from '../components/effects/DiceEffectsManager';
 import { GameHelp, HelpButton } from '../components/ui/GameHelp';
 import { useTutorialStore } from '../store/tutorialStore';
 import { CharacterPlacement } from '../components/setup/CharacterPlacement';
@@ -18,6 +20,7 @@ import { PlayerSetup } from '../components/setup/PlayerSetup';
 const IsometricBoard = lazy(() =>
   import('../components/scene/IsometricBoard').then((module) => ({ default: module.IsometricBoard })),
 );
+const DiceEffectsPreview = lazy(() => import('../components/effects/DiceEffectsPreview'));
 
 const setupSteps = [
   { phase: 'playerSetup', label: 'Team' },
@@ -63,8 +66,12 @@ export function App() {
     placeCharacter(character, tileId);
   }
 
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('effectsPreview')) {
+    return <Suspense fallback={<p>Preparing effects preview…</p>}><DiceEffectsPreview /></Suspense>;
+  }
   if (phase === 'ready') {
     return (
+      <DiceEffectsManager>
       <main className="game-screen">
         <header className="topbar game-topbar">
           <a className="brand" href="#" aria-label="A Game of Hives home">
@@ -98,7 +105,9 @@ export function App() {
           <GameHUD />
         </div>
         <Tutorial />
+        <EventNotice />
       </main>
+      </DiceEffectsManager>
     );
   }
 

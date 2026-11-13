@@ -27,6 +27,8 @@ The existing React / Zustand / React Three Fiber architecture is retained. `game
 
 ## Rules and references
 
+Follow-up: the designer approved a custom die with two Improvement faces on 13 November 2026. Both now give free garden growth, and the single Weather face stops bee movement for the turn. The guide pauses during the tumble and temporary centre-screen result card, then continues automatically. This supersedes the earlier dice mapping mentioned below; see `custom-die.md` for the full approved mapping and save compatibility.
+
 The supplied GTAC Brand and Style Guide v1.02 (March 2025), pages 12–17 and 19, confirms the requested palette, secondary-school Chlorophyll Green emphasis and Figtree typography. The supplied Transporter screenshots informed the rounded Emerald borders and Mint learning panels. The 13-second Introduction Tour video informed cream cards beside focused controls and dimmed surroundings. Transporter-specific instructions, budgets, pollinator counts and scoring were not imported into this game.
 
 The repository's confirmed rules take precedence over simplified examples in the redesign request: each named player takes a turn before a round ends; each turn allows two **different** action categories; victory requires 10+ points in **held** honey and bee bread at turn end. Loss remains immediate at zero healthy hives. Tile supply, placement restrictions, movement, event probabilities and targets, damage, protections, recipes, scoring, passing, reset and save/resume behaviour are unchanged.
