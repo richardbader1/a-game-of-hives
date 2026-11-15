@@ -72,7 +72,7 @@ test('garden guide stays outside the board, teaches and highlights each resource
     expect(await game(page)).toEqual(before);
     await page.getByText('Keyboard-accessible placement', { exact: true }).click();
     await page.getByRole('button', { name: 'Place at 0, 0', exact: true }).click();
-    await page.getByText('Help & Instructions', { exact: true }).click();
+    await page.getByRole('button', { name: 'Help', exact: true }).click();
     await page.getByRole('button', { name: 'Restart guided tutorial here' }).click();
     await guide.getByRole('button', { name: 'Next', exact: true }).click();
     await expect.poll(async () => (await sceneSymbols(page)).focused).toBe(1);

@@ -20,6 +20,10 @@ button:disabled { background: #D3D6D5; color: #484D49; opacity: 1; cursor: not-a
 .secondary-button { background: #F9F6E7; color: #155B4F; border: 1px solid #155B4F; box-shadow: none; font-size: 14px; }
 .topbar, .game-screen .game-topbar { background: #F9F6E7; border-bottom: 1px solid #155B4F; }
 .brand, .brand em { font-family: 'Figtree', sans-serif; color: #155B4F; font-style: normal; }
+.brand-title { color: inherit; text-decoration: none; }
+.gtac-brand-link { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; }
+.gtac-brand-link img { display: block; width: 28px; height: 36px; object-fit: contain; }
+.gtac-brand-link:focus-visible { outline: 3px solid #4C34E5; outline-offset: 3px; border-radius: 6px; }
 .brand-mark, .status-dot, .eyebrow-dot { background: #00BC74; color: #272A24; }
 .topbar-note, .eyebrow, .hud-label, .microcopy, .supply-count, .touch-hint, .board-legend { color: #155B4F; }
 .topbar-note { margin-left: auto; }
@@ -40,8 +44,12 @@ button:disabled { background: #D3D6D5; color: #484D49; opacity: 1; cursor: not-a
 .progress-track span { background: #00BC74; }
 .step.current .step-mark, .step.complete .step-mark { color: #102E24; background: #6BE7BE; border-color: #155B4F; }
 .error-message, .restriction-note { color: #702714; background: #FFE3D8; padding: 12px; border-left: 4px solid #FF6D3A; border-radius: 8px; font-size: 15px; }
-.setup-help { width: min(1100px, calc(100% - 40px)); margin: 12px auto 24px; }
-.game-help summary { color: #155B4F; font-size: 16px; }
+.game-help-popup { position: fixed; inset: 90px max(16px, calc((100vw - 1600px) / 2 + 20px)) auto auto; margin: 0; width: min(540px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 106px); overflow: auto; padding: 0; border: 1px solid #155B4F; border-radius: 18px; background: #F9F6E7; color: #272A24; box-shadow: 0 4px 16px #272A2426; }
+.game-help-popup::backdrop { background: #272A241A; }
+.game-help-popup-heading { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; background: #F9F6E7; border-bottom: 1px solid #D3D6D5; z-index: 1; }
+.game-help-popup-heading h2 { margin: 0; color: #155B4F; font-size: 22px; }
+.game-help-popup-heading button { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 24px; }
+.game-help-popup-body { padding: 0 20px 20px; }
 .mission-welcome { max-width: 1100px; margin: 12px auto 32px; }
 .mission-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: center; }
 .mission-hero h1 { font-size: clamp(36px, 5vw, 64px); letter-spacing: -2px; margin: 16px 0 0; line-height: 1.1; }
@@ -83,6 +91,10 @@ button:disabled { background: #D3D6D5; color: #484D49; opacity: 1; cursor: not-a
 .help-tip-copy { padding: 12px; border: 1px solid #155B4F; border-radius: 12px; background: #CBF4DF; margin-top: 8px; }
 .resource-token .help-tip-copy { position: absolute; left: -60px; top: 100%; z-index: 42; width: min(240px, 70vw); }
 .resource-token .help-tip > summary { width: 32px; min-height: 44px; border: 0; }
+.resource-token .symbol-help > summary { width: 44px; border-radius: 10px; }
+.resource-token .symbol-help > summary:focus-visible { outline: 3px solid #4C34E5; outline-offset: 2px; }
+.resource-token .symbol-help .help-tip-copy { left: 0; }
+.resource-token .symbol-help .help-tip-copy::before { content: ''; position: absolute; top: -8px; left: 0; right: 0; height: 8px; }
 .resource-token { gap: 4px; }
 .resource-score { margin-left: auto; }
 .game-layout .gameplay-panel { grid-column: 2; grid-row: 2; position: relative; inset: auto; width: auto; max-width: none; max-height: none; overflow: visible; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: none; }
@@ -166,6 +178,7 @@ body.tutorial-active { padding-bottom: 300px; }
   .mission-hero { gap: 20px; }
 }
 @media (max-width: 620px) {
+  .game-help-popup { top: 72px; right: 12px; width: calc(100vw - 24px); max-height: calc(100dvh - 84px); }
   .game-resource-toolbar { --resource-icon-base: 26px; --resource-value-base: 16px; }
   .game-resource-toolbar .product-icon { font-size: calc(13px * var(--resource-hud-scale)); }
   .topbar-note { display: none; }

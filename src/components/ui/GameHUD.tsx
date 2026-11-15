@@ -1,7 +1,6 @@
 import { InventoryToolbar } from './InventoryToolbar';
 import { TradePanel } from './TradePanel';
 import { BoardDestinations } from './BoardDestinations';
-import { GameHelp } from './GameHelp';
 import { HelpTip } from './HelpTip';
 import { DicePanel } from './DicePanel';
 import { useSessionStore } from '../../store/sessionStore';
@@ -211,7 +210,6 @@ export function GameHUD() {
 
       {turnPhase === 'trading' && <TradePanel />}
       <BoardDestinations />
-      <GameHelp />
       <p className="sr-only" role="status">{saveNotice}</p>
 
       <div className="lower-info-grid">

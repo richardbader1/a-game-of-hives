@@ -74,7 +74,7 @@ test('welcome, guided placement and first round work on desktop and touch layout
   await expect(page.getByRole('heading', { name: 'Your first round is complete!' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue Playing' }).click();
   await expect(page.getByLabel('Guided tutorial')).toHaveCount(0);
-  await page.getByText('Help & Instructions', { exact: true }).click();
+  await page.getByRole('button', { name: 'Help', exact: true }).click();
   await page.getByRole('button', { name: 'Restart guided tutorial here' }).click();
   await expect(page.getByLabel('Guided tutorial')).toBeVisible();
   await page.getByRole('button', { name: 'Skip Tutorial' }).click();

@@ -4,7 +4,7 @@ import { Welcome } from '../components/setup/Welcome';
 import { Tutorial } from '../components/ui/Tutorial';
 import { EventNotice } from '../components/ui/EventNotice';
 import { DiceEffectsManager } from '../components/effects/DiceEffectsManager';
-import { GameHelp, HelpButton } from '../components/ui/GameHelp';
+import { HelpButton } from '../components/ui/GameHelp';
 import { useTutorialStore } from '../store/tutorialStore';
 import { CharacterPlacement } from '../components/setup/CharacterPlacement';
 import { GardenBuilder } from '../components/setup/GardenBuilder';
@@ -77,10 +77,7 @@ export function App() {
       <DiceEffectsManager>
       <main className="game-screen">
         <header className="topbar game-topbar">
-          <a className="brand" href="#" aria-label="A Game of Hives home">
-            <span className="brand-mark" aria-hidden="true">✿</span>
-            <span>A Game <em>of</em> Hives</span>
-          </a>
+          <Brand />
           <span className="topbar-note"><span className="status-dot" /> CO-OP GARDEN ADVENTURE</span>
           <div className="game-header-actions"><HelpButton /><NewGameButton /></div>
         </header>
@@ -117,10 +114,7 @@ export function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#" aria-label="A Game of Hives home">
-          <span className="brand-mark" aria-hidden="true">✿</span>
-          <span>A Game <em>of</em> Hives</span>
-        </a>
+        <Brand />
         <div className="topbar-note"><span className="status-dot" /> CO-OP GARDEN ADVENTURE</div>
         {(welcomeSeen || phase !== 'playerSetup') && <HelpButton />}
       </header>
@@ -192,7 +186,6 @@ export function App() {
           </div></GardenDragProvider>
         )}
       </div>
-      {(welcomeSeen || phase !== 'playerSetup') && <div className="setup-help"><GameHelp /></div>}
       <Tutorial />
 
       <footer className="site-footer">
@@ -201,4 +194,13 @@ export function App() {
       </footer>
     </main>
   );
+}
+
+function Brand() {
+  return <div className="brand">
+    <a className="gtac-brand-link" href="https://gtac.edu.au/" target="_blank" rel="noopener noreferrer" aria-label="GTAC website (opens in a new tab)">
+      <img src={`${import.meta.env.BASE_URL}assets/branding/gtac_icon_multi.svg`} width={28} height={36} alt="" aria-hidden="true" />
+    </a>
+    <a className="brand-title" href="#" aria-label="A Game of Hives home">A Game <em>of</em> Hives</a>
+  </div>;
 }

@@ -61,14 +61,15 @@ export function InventoryToolbar() {
     <div className="game-resource-toolbar" aria-label="Shared team inventory and recipes">
       {(['pollen', 'nectar', 'water'] as const).map((resource) => (
         <div className="resource-token" key={resource} aria-label={`${RESOURCE_PRESENTATION[resource].label}: ${inventory[resource]}`}>
-          <span className="resource-token-icon" style={{ backgroundColor: RESOURCE_PRESENTATION[resource].color }} aria-hidden="true">
-            <ResourceIcon resource={resource} />
-          </span>
+          <HelpTip preview label={RESOURCE_PRESENTATION[resource].label} trigger={
+            <span className="resource-token-icon" style={{ backgroundColor: RESOURCE_PRESENTATION[resource].color }} aria-hidden="true">
+              <ResourceIcon resource={resource} />
+            </span>
+          }>{RESOURCE_DESCRIPTIONS[resource]}</HelpTip>
           <span className="resource-token-copy">
             <strong>{inventory[resource]}</strong>
             <small>{RESOURCE_PRESENTATION[resource].label}</small>
           </span>
-          <HelpTip preview label={RESOURCE_PRESENTATION[resource].label}>{RESOURCE_DESCRIPTIONS[resource]}</HelpTip>
         </div>
       ))}
       {(Object.keys(PRODUCTS) as ProductType[]).map((key) => {
