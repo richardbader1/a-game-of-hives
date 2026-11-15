@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { Html } from '@react-three/drei';
+import { Html, useTexture } from '@react-three/drei';
+import { resourceIconUrl } from '../ui/ResourceIcon';
 import { RESOURCE_PRESENTATION } from '../../game/config/gameSettings';
 import { hexKey } from '../../game/board/hexCoordinates';
 import type { GardenTile, HexCoord, ResourceType } from '../../game/types';
@@ -10,6 +11,8 @@ interface HexTileProps {
   tile?: GardenTile;
   highlighted?: boolean;
   preview?: boolean;
+  instructionalFocus?: boolean;
+  dropTarget?: boolean;
   selectable?: boolean;
   selectedResource?: ResourceType;
   damaged?: boolean;
@@ -23,6 +26,8 @@ export function HexTile({
   tile,
   highlighted = false,
   preview = false,
+  instructionalFocus = false,
+  dropTarget = false,
   selectable = false,
   selectedResource = 'pollen',
   damaged = false,
@@ -45,6 +50,7 @@ export function HexTile({
   return (
     <group position={[position.x, 0, position.z]}>
       <mesh
+        userData={{ gardenCoord: coord }}
         position={[0, -0.02, 0]}
         castShadow
         receiveShadow
@@ -80,27 +86,16 @@ export function HexTile({
           opacity={tile ? 0.92 : 0.7}
         />
       </lineSegments>
+      {(instructionalFocus || dropTarget) && <mesh position={[0, 0.155, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 6]} raycast={() => null} name={dropTarget ? 'garden-drop-target' : 'garden-resource-example'}>
+        <ringGeometry args={[0.9, 1.03, 6]} /><meshBasicMaterial color="#FFCD1F" />
+      </mesh>}
       {tile && highlighted && (
         <mesh position={[0, 0.125, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 6]} raycast={() => null}>
           <ringGeometry args={[0.94, 0.985, 6]} />
           <meshBasicMaterial color="#f1a62e" />
         </mesh>
       )}
-      {tile && <group position={[0.1, 0.15, -0.62]} rotation={[-Math.PI / 2, 0, 0]}>
-        {resource === 'pollen' ? Array.from({ length: 5 }, (_, i) => (
-          <mesh key={i} position={[Math.sin(i * Math.PI * 2 / 5) * 0.12, Math.cos(i * Math.PI * 2 / 5) * 0.12, 0]} raycast={() => null}>
-            <circleGeometry args={[0.075, 10]} /><meshBasicMaterial color="#ffffff" />
-          </mesh>
-        )) : resource === 'nectar' ? (
-          <mesh rotation={[0, 0, Math.PI / 4]} raycast={() => null}>
-            <planeGeometry args={[0.24, 0.24]} /><meshBasicMaterial color="#ffffff" />
-          </mesh>
-        ) : [-0.1, 0, 0.1].map(y => (
-          <mesh key={y} position={[0, y, 0]} raycast={() => null}>
-            <planeGeometry args={[0.32, 0.035]} /><meshBasicMaterial color="#ffffff" />
-          </mesh>
-        ))}
-      </group>}
+      {tile && <TileResourceSymbol resource={resource} />}
       {!tile && selectable && (
         <mesh position={[0, 0.15, 0]} raycast={() => null}>
           <sphereGeometry args={[0.09, 12, 12]} />
@@ -125,6 +120,13 @@ export function HexTile({
       )}
     </group>
   );
+}
+
+function TileResourceSymbol({ resource }: { resource: ResourceType }) {
+  const texture = useTexture(resourceIconUrl(resource));
+  return <mesh name={`resource-symbol-${resource}`} position={[0.1, 0.15, -0.62]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+    <planeGeometry args={[0.4, 0.4]} /><meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+  </mesh>;
 }
 
 export function hexPosition(coord: HexCoord): { x: number; z: number } {

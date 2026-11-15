@@ -85,7 +85,7 @@ it('supports back review and safe escape when a spotlight target is missing', as
   await user.click(screen.getByRole('button', { name: 'Return to current step' }));
   await user.click(screen.getByRole('button', { name: 'Next' }));
   expect(screen.getByText(/Try Beekeeper or Garden/)).toBeTruthy();
-  await user.click(screen.getByRole('button', { name: 'Show me where' }));
+  await user.click(screen.getByRole('button', { name: 'Next' }));
   await user.keyboard('{Escape}');
   expect(useTutorialStore.getState().active).toBe(false);
   expect(useGameStore.getState().eventRestriction).toBe('noBeeMove');

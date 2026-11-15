@@ -1,5 +1,4 @@
-.dice-panel { display: grid; justify-items: center; gap: 8px; padding: 16px; border: 1px solid #155B4F; border-radius: 16px; background: #F9F6E7; }
-.dice-panel h2 { margin: 0; font-size: 22px; }
+.dice-panel { display: grid; justify-items: center; padding: 10px; border: 1px solid #155B4F; border-radius: 16px; background: #F9F6E7; }
 .dice-panel > .primary-button { width: 100%; min-height: 48px; margin: 0; }
 .dice-stage { width: 240px; height: 190px; }
 .dice-stage.dice-stage-rolling { position: fixed; z-index: 44; max-width: none; pointer-events: none; overflow: hidden; border-radius: 20px; }

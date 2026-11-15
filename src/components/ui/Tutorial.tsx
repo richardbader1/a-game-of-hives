@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGameStore } from '../../store/gameStore';
 import { useTutorialStore } from '../../store/tutorialStore';
 import type { EnvironmentalEvent, GameSnapshot } from '../../game/types';
 import { eventDescription, eventName, movementDestinations, canPurchase } from '../../game/engine/gameEngine';
+import { GARDEN_GUIDE_IDS, gardenGuideIndex, RESOURCE_DESCRIPTIONS } from './resourceDescriptions';
 
 export interface TutorialStep {
   id: string; title: string; body: string; target: string; instruction: string; acknowledge?: boolean;
@@ -22,7 +24,14 @@ export function tutorialStep(s: GameSnapshot, reviewed: string[]): TutorialStep 
     ({ id, title, body, target, instruction, acknowledge });
   if (s.outcome) return step('outcome', 'Keep learning together', s.message, '.outcome-banner', 'Use Help to review your next strategy.', true);
   if (s.phase === 'playerSetup') return step('team', 'Meet your colony team', 'You share one garden and inventory. Talk through decisions together.', '.setup-card', 'Enter 2–4 names, choose who starts, then choose your garden.');
-  if (s.phase === 'gardenSetup') return step('garden', 'Build your garden', 'Your garden provides pollen, nectar and water. Connect five tiles so your bees can travel between them; include all three types and bend the garden rather than making one straight line.', '.setup-card', `Garden tiles: ${s.tiles.length} of 5. Choose a resource, then a highlighted space. Undo a tile if you need to change the shape.`);
+  if (s.phase === 'gardenSetup') {
+    const index = gardenGuideIndex(reviewed);
+    const resource = (['pollen', 'nectar', 'water'] as const)[index - 1];
+    if (resource) return step(GARDEN_GUIDE_IDS[index], resource[0].toUpperCase() + resource.slice(1), RESOURCE_DESCRIPTIONS[resource], `[data-garden-resource="${resource}"]`, 'Look for this symbol on your garden tiles.', true);
+    return index === 0
+      ? step('garden', 'Build your garden', 'Your shared garden needs pollen, nectar and water. Connect five tiles, include all three types, and bend your garden instead of making one straight line.', '.resource-picker', 'Let’s discover what each resource does for bees.', true)
+      : step('garden-place', 'Place your tiles', 'Choose a resource, then click or drag it to a highlighted legal space. Every tile must touch the garden so your bees can travel between tiles.', '.resource-picker', `Garden tiles: ${s.tiles.length} of 5. Undo a tile if you want to change it.`, true);
+  }
   if (s.phase === 'hiveSetup') return step('hives', 'Give your bees a home', 'A healthy hive doubles collection on its tile from one resource to two. Place four hives on separate tiles.', '.setup-card', `Hives placed: ${s.hives.length} of 4. Tap a highlighted tile. The ghost shows one possible location.`);
   if (s.phase === 'characterSetup') {
     if (s.beeTileId && s.beekeeperTileId) return step('ready', 'Your garden is ready!', 'You have five garden tiles, four hives, a forager bee and a beekeeper.', '.setup-card', 'Select Start First Round to learn your first turn.');
@@ -55,7 +64,7 @@ export function tutorialStep(s: GameSnapshot, reviewed: string[]): TutorialStep 
   if (s.selectedAction === 'beekeeper' && s.selectedTileId) return step('protect', 'Protect your colony', 'At the chosen tile, your beekeeper can make one available repair or improvement without spending resources.', '.improvement-options', 'Choose a repair or protection. If none is useful, skip this action.');
   return step('destination', s.selectedAction === 'bee' ? 'Collect resources' : s.selectedAction === 'garden' ? 'Grow your garden' : 'Move your beekeeper',
     s.selectedAction === 'bee' ? 'Move in a straight line across healthy connected tiles. A healthy hive doubles collection; check the event for restrictions.' : s.selectedAction === 'garden' ? 'A new connected tile gives your colony more places to collect resources.' : 'Your beekeeper can cross damaged tiles and can also act on its current tile.',
-    '.gameplay-destinations', 'Choose a highlighted board destination or use Board controls below. If none is available, skip this action.');
+    '.board-canvas', 'Choose a highlighted board destination. Keyboard users can Tab to the accessible destination buttons. If none is available, skip this action.');
 }
 
 /** Reusable viewport spotlight. It never captures clicks on the game underneath. */
@@ -94,6 +103,7 @@ export function Tutorial() {
   const rect = useTargetBounds(tour.active && !viewingHistory ? step.target : '');
   const cardRef = useRef<HTMLElement>(null);
   const [cardSize, setCardSize] = useState({ width: 400, height: 280 });
+  const [collapsed, setCollapsed] = useState(false);
   useLayoutEffect(() => {
     if (!tour.active || !cardRef.current) return;
     const update = () => {
@@ -122,7 +132,8 @@ export function Tutorial() {
     document.body.classList.toggle('tutorial-active', tour.active);
     return () => document.body.classList.remove('tutorial-active');
   }, [tour.active]);
-  if (!tour.active || game.diceAnimation || game.eventNotice) return null;
+  const garden = game.phase === 'gardenSetup';
+  if (!tour.active || game.diceAnimation || game.eventNotice || (garden && tour.reviewed.includes('garden-place'))) return null;
   const shown = viewingHistory ? tour.history[tour.reviewIndex!] ?? step : step;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
@@ -145,20 +156,28 @@ export function Tutorial() {
   }
   left = Math.max(16, Math.min(left, viewportWidth - width - 16));
   top = Math.max(16, Math.min(top, viewportHeight - height - 16));
-  return <>
-    {rect && <div aria-hidden="true" className="tutorial-spotlight" style={{ left: rect.left - 4, top: rect.top - 4, width: rect.width + 8, height: rect.height + 8 }} />}
-    <aside ref={cardRef} className="tutorial-card" style={{ left, top, bottom: 'auto' }} aria-label="Guided tutorial" onKeyDown={e => { if (e.key === 'Escape') tour.skip(); }}>
+  const card = <aside ref={cardRef} className={`tutorial-card${garden ? ' garden-tutorial-card' : ''}`} style={garden ? undefined : { left, top, bottom: 'auto' }} aria-label="Guided tutorial" onKeyDown={e => { if (e.key === 'Escape') tour.skip(); }}>
       <div className="tutorial-caption"><span>YOUR COLONY GUIDE {viewingHistory ? '· REVIEW' : ''}</span><button type="button" onClick={tour.skip}>Skip Tutorial</button></div>
+      {garden && <button type="button" className="quiet-button garden-guide-toggle" aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}>{collapsed ? 'Show garden guide' : 'Minimise guide'}</button>}
+      <div hidden={garden && collapsed}>
       <div aria-live="polite" aria-atomic="true"><h2>{shown.title}</h2><p>{shown.body}</p><p className="tutorial-instruction">{shown.instruction}</p></div>
       <div className="tutorial-navigation">
         <button type="button" className="secondary-button" disabled={tour.history.length < 2 || tour.reviewIndex === 0} onClick={() => useTutorialStore.setState({ reviewIndex: (tour.reviewIndex ?? tour.history.length - 1) - 1 })}>Back</button>
-        {viewingHistory ? <button type="button" className="primary-button" onClick={() => useTutorialStore.setState({ reviewIndex: null })}>Return to current step</button>
+        {viewingHistory ? <button type="button" className="primary-button" onClick={() => useTutorialStore.setState({ reviewIndex: garden && tour.reviewIndex! < tour.history.length - 2 ? tour.reviewIndex! + 1 : null })}>{garden ? 'Next' : 'Return to current step'}</button>
           : <button type="button" className="primary-button" onClick={() => {
             if (step.id === 'complete' || step.id === 'outcome') tour.skip();
-            else if (step.acknowledge) tour.acknowledge(step.id);
+            else if (step.acknowledge) {
+              tour.acknowledge(step.id);
+              if (step.id === 'garden-place') document.querySelector<HTMLButtonElement>(`[data-garden-resource="${game.selectedResource}"]`)?.focus();
+            }
             else document.querySelector<HTMLElement>(step.target)?.scrollIntoView({ block: 'center', behavior: 'instant' });
-          }}>{step.id === 'complete' || step.id === 'outcome' ? 'Continue Playing' : step.acknowledge ? 'Next' : 'Show me where'}</button>}
+          }}>{step.id === 'complete' || step.id === 'outcome' ? 'Continue Playing' : step.id === 'garden-place' ? 'Got it' : 'Next'}</button>}
       </div>
-    </aside>
+      </div>
+    </aside>;
+  const dock = garden ? document.querySelector('.garden-guide-dock') : null;
+  return <>
+    {!garden && rect && <div aria-hidden="true" className="tutorial-spotlight" style={{ left: rect.left - 4, top: rect.top - 4, width: rect.width + 8, height: rect.height + 8 }} />}
+    {dock ? createPortal(card, dock) : card}
   </>;
 }

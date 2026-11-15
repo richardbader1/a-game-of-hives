@@ -1,11 +1,13 @@
 import { useShallow } from 'zustand/react/shallow';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { HIVE_SUPPLY, RESOURCE_PRESENTATION, WINNING_SCORE } from '../../game/config/gameSettings';
 import { canPurchase, legalHivePurchaseTiles, scoreInventory } from '../../game/engine/gameEngine';
 import { PRODUCTS, canAfford, ingredients, missingIngredients, type ProductType } from '../../game/data/products';
 import type { ResourceType } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
 import { HelpTip } from './HelpTip';
+import { ResourceIcon } from './ResourceIcon';
+import { RESOURCE_DESCRIPTIONS } from './resourceDescriptions';
 
 export function InventoryToolbar() {
   const state = useGameStore(useShallow(s => ({
@@ -19,6 +21,31 @@ export function InventoryToolbar() {
   const [openRecipe, setOpenRecipe] = useState<ProductType | null>(null);
   const recipePointerActivation = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout>>();
+  const recipeRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!openRecipe) return;
+    let offset = 0;
+    const align = () => {
+      const popup = recipeRef.current;
+      if (!popup) return;
+      // Retain the existing button anchor, but keep a wrapped strip's final
+      // recipe inside the viewport instead of clipping it at the right edge.
+      const bounds = popup.getBoundingClientRect();
+      // Mobile browsers can temporarily inflate innerWidth to include an
+      // overflowing popup. Clamp to the layout viewport, not that overflow.
+      const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+      const left = bounds.left - offset, right = bounds.right - offset;
+      offset = Math.max(12 - left, Math.min(0, viewportWidth - 12 - right));
+      // Change layout position: transforms leave the original overflow area in
+      // a mobile browser's scrollable bounds even when the card looks aligned.
+      popup.style.left = `${offset}px`;
+    };
+    align();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(align);
+    if (recipeRef.current) observer?.observe(recipeRef.current);
+    window.addEventListener('resize', align); window.addEventListener('scroll', align, true);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', align); window.removeEventListener('scroll', align, true); };
+  }, [openRecipe]);
   useEffect(() => () => clearTimeout(closeTimer.current), []);
   useEffect(() => {
     if (!openRecipe) return;
@@ -35,13 +62,13 @@ export function InventoryToolbar() {
       {(['pollen', 'nectar', 'water'] as const).map((resource) => (
         <div className="resource-token" key={resource} aria-label={`${RESOURCE_PRESENTATION[resource].label}: ${inventory[resource]}`}>
           <span className="resource-token-icon" style={{ backgroundColor: RESOURCE_PRESENTATION[resource].color }} aria-hidden="true">
-            {RESOURCE_PRESENTATION[resource].icon}
+            <ResourceIcon resource={resource} />
           </span>
           <span className="resource-token-copy">
             <strong>{inventory[resource]}</strong>
             <small>{RESOURCE_PRESENTATION[resource].label}</small>
           </span>
-          <HelpTip label={RESOURCE_PRESENTATION[resource].label}>Collected when your bee lands on a {resource} tile. Shared by your team and used in product trades.</HelpTip>
+          <HelpTip preview label={RESOURCE_PRESENTATION[resource].label}>{RESOURCE_DESCRIPTIONS[resource]}</HelpTip>
         </div>
       ))}
       {(Object.keys(PRODUCTS) as ProductType[]).map((key) => {
@@ -67,9 +94,10 @@ export function InventoryToolbar() {
           <div
             className="recipe-item"
             key={product.key}
-            onMouseEnter={() => { clearTimeout(closeTimer.current); setOpenRecipe(product.key); }}
-            onMouseLeave={(event) => {
+            onPointerEnter={event => { if (event.pointerType === 'mouse') { clearTimeout(closeTimer.current); setOpenRecipe(product.key); } }}
+            onPointerLeave={(event) => {
               if (
+                event.pointerType === 'mouse' &&
                 openRecipe === product.key &&
                 !event.currentTarget.contains(document.activeElement)
               ) closeTimer.current = setTimeout(() => setOpenRecipe(null), 180);
@@ -98,7 +126,7 @@ export function InventoryToolbar() {
               </span>
             </button>
             {openRecipe === product.key && (
-              <div className="recipe-popover" role="dialog" aria-label={`${product.label} recipe`}>
+              <div ref={recipeRef} className="recipe-popover" role="dialog" aria-label={`${product.label} recipe`}>
                 <div className="recipe-popover-header">
                   <strong>{product.label}</strong>
                   <button
@@ -120,7 +148,7 @@ export function InventoryToolbar() {
                       ? '🍯'
                       : ingredient === 'beeBread'
                         ? '🍞'
-                        : RESOURCE_PRESENTATION[ingredient as ResourceType].icon;
+                        : <ResourceIcon resource={ingredient as ResourceType} />;
                     const ingredientColor = ingredient in RESOURCE_PRESENTATION
                       ? RESOURCE_PRESENTATION[ingredient as ResourceType].color
                       : '#fff0c8';

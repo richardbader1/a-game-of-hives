@@ -8,6 +8,7 @@ import { GameHelp, HelpButton } from '../components/ui/GameHelp';
 import { useTutorialStore } from '../store/tutorialStore';
 import { CharacterPlacement } from '../components/setup/CharacterPlacement';
 import { GardenBuilder } from '../components/setup/GardenBuilder';
+import { GardenDragProvider } from '../components/setup/GardenDrag';
 import { HivePlacement } from '../components/setup/HivePlacement';
 import { GameHUD } from '../components/ui/GameHUD';
 import type { CharacterType } from '../game/types';
@@ -16,6 +17,8 @@ import { useSessionStore } from '../store/sessionStore';
 import { SavedGamePrompt } from '../components/setup/SavedGamePrompt';
 import { useGameStore } from '../store/gameStore';
 import { PlayerSetup } from '../components/setup/PlayerSetup';
+import { ResourceIcon } from '../components/ui/ResourceIcon';
+import { NewGameButton } from '../components/ui/NewGameButton';
 
 const IsometricBoard = lazy(() =>
   import('../components/scene/IsometricBoard').then((module) => ({ default: module.IsometricBoard })),
@@ -79,7 +82,7 @@ export function App() {
             <span>A Game <em>of</em> Hives</span>
           </a>
           <span className="topbar-note"><span className="status-dot" /> CO-OP GARDEN ADVENTURE</span>
-          <HelpButton />
+          <div className="game-header-actions"><HelpButton /><NewGameButton /></div>
         </header>
         <div className="game-layout">
           <div className="board-column game-board-column">
@@ -135,7 +138,7 @@ export function App() {
             <div>{saveNotice && <p className="save-status" role="status">{saveNotice}</p>}{savedGame ? <SavedGamePrompt /> : <PlayerSetup />}</div>
           </div>
         ) : (
-          <div className="setup-layout">
+          <GardenDragProvider enabled={phase === 'gardenSetup'}><div className="setup-layout">
             <div className="setup-main">
               <div className="stepper" aria-label="Setup progress">
                 {setupSteps.map((step, index) => {
@@ -174,9 +177,9 @@ export function App() {
                 />
               </Suspense>
               <div className="board-legend" aria-label="Garden tile legend">
-                <span><i className="legend-dot pollen" /> Pollen</span>
-                <span><i className="legend-dot nectar" /> Nectar</span>
-                <span><i className="legend-dot water" /> Water</span>
+                <span><ResourceIcon resource="pollen" /> Pollen</span>
+                <span><ResourceIcon resource="nectar" /> Nectar</span>
+                <span><ResourceIcon resource="water" /> Water</span>
                 {phase === 'hiveSetup' && <span><i className="legend-hive">⌂</i> Hive</span>}
                 {phase === 'characterSetup' && <span><i className="legend-bee">●</i> Bee &amp; beekeeper</span>}
               </div>
@@ -186,7 +189,7 @@ export function App() {
             {phase === 'gardenSetup' && <GardenBuilder />}
             {phase === 'hiveSetup' && <HivePlacement />}
             {phase === 'characterSetup' && <CharacterPlacement />}
-          </div>
+          </div></GardenDragProvider>
         )}
       </div>
       {(welcomeSeen || phase !== 'playerSetup') && <div className="setup-help"><GameHelp /></div>}

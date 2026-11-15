@@ -53,11 +53,13 @@ test('welcome, guided placement and first round work on desktop and touch layout
   await expect(page.getByRole('heading', { name: 'Varroa mite!', exact: true })).toBeVisible();
   await expect(page.locator('.dice-event-notice')).toHaveCount(0, { timeout: 6000 });
   await page.getByRole('button', { name: 'Bee', exact: true }).click();
-  await page.getByRole('button', { name: /Move bee to Nectar at 1, 0/ }).click();
+  await page.getByRole('button', { name: /Move bee to Nectar at 1, 0/ }).focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Collected: +2 nectar' })).toBeVisible();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Beekeeper', exact: true }).click();
-  await page.getByRole('button', { name: /Move beekeeper to Pollen at 0, 0/ }).click();
+  await page.getByRole('button', { name: /Move beekeeper to Pollen at 0, 0/ }).focus();
+  await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Repair hive', exact: true }).click();
   await page.getByRole('button', { name: 'Finish trading & turn' }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();

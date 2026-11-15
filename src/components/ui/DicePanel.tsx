@@ -41,8 +41,7 @@ export function DicePanel() {
     return () => { window.clearTimeout(timer); window.clearTimeout(watchdog); };
   }, [roll?.id, reducedMotion, complete, useFallback]);
   const fallback = <span className={`dice-fallback dice-face-art dice-symbol-${DIE_EVENTS[face - 1]}`} aria-hidden="true" />;
-  return <section className="dice-panel" aria-labelledby="dice-title" aria-busy={Boolean(roll)}>
-    <h2 id="dice-title">Roll Dice</h2>
+  return <section className="dice-panel" aria-label="Environmental dice roll" aria-busy={Boolean(roll)}>
     {roll && boardBounds && createPortal(<div className="dice-stage dice-stage-rolling" style={boardBounds} role="img" aria-label={reducedMotion ? 'Environmental die revealing the result' : 'Environmental die rolling across the garden'}>
       {useFallback ? fallback : <DiceBoundary fallback={fallback} onFailure={() => setUseFallback(true)}><Suspense fallback={null}><DiceCanvas face={face} roll={roll} reducedMotion={reducedMotion} tabletop onSettled={complete} /></Suspense></DiceBoundary>}
     </div>, document.body)}

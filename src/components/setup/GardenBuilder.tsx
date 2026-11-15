@@ -5,6 +5,11 @@ import { validateStartingGarden } from '../../game/engine/setupValidator';
 import type { CSSProperties } from 'react';
 import type { GardenTile, HexCoord, ResourceType } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
+import { useTutorialStore } from '../../store/tutorialStore';
+import { gardenResourceFocus, RESOURCE_DESCRIPTIONS } from '../ui/resourceDescriptions';
+import { ResourceIcon } from '../ui/ResourceIcon';
+import { HelpTip } from '../ui/HelpTip';
+import { useGardenDrag } from './GardenDrag';
 
 function getAccessiblePlacements(tiles: readonly GardenTile[]): HexCoord[] {
   if (tiles.length === 0) return [{ q: 0, r: 0 }];
@@ -16,10 +21,12 @@ function getAccessiblePlacements(tiles: readonly GardenTile[]): HexCoord[] {
 }
 
 export function GardenBuilder() {
+  const tour = useTutorialStore();
+  const focusResource = gardenResourceFocus(tour);
+  const drag = useGardenDrag();
   const tiles = useGameStore((state) => state.tiles);
   const selectedResource = useGameStore((state) => state.selectedResource);
   const error = useGameStore((state) => state.error);
-  const selectResource = useGameStore((state) => state.selectResource);
   const placeGardenTile = useGameStore((state) => state.placeGardenTile);
   const removeLastGardenTile = useGameStore((state) => state.removeLastGardenTile);
   const beginHiveSetup = useGameStore((state) => state.beginHiveSetup);
@@ -34,27 +41,35 @@ export function GardenBuilder() {
       <div className="eyebrow"><span className="eyebrow-dot" /> GARDEN SETUP · 2 OF 4</div>
       <h2 id="garden-setup-title">Grow your garden</h2>
       <p className="intro-copy">Choose five touching tiles. Your team needs pollen, nectar and water.</p>
+      <div className="garden-guide-dock" />
 
       <div className="resource-picker" role="group" aria-label="Choose a garden tile">
         {(Object.keys(RESOURCE_PRESENTATION) as ResourceType[]).map((resource) => {
           const item = RESOURCE_PRESENTATION[resource];
           return (
+            <div className="garden-resource-option" key={resource}>
             <button
-              className={`resource-choice ${selectedResource === resource ? 'is-selected' : ''}`}
-              key={resource}
+              className={`resource-choice ${selectedResource === resource ? 'is-selected' : ''} ${focusResource === resource ? 'tutorial-resource-focus' : ''}`}
+              data-garden-resource={resource}
               type="button"
               aria-pressed={selectedResource === resource}
               style={{ '--resource-color': item.color, '--resource-soft': item.softColor } as CSSProperties}
               disabled={remaining(resource) === 0}
-              onClick={() => selectResource(resource)}
+              aria-describedby={`garden-info-${resource}`}
+              onPointerDown={event => drag.begin(resource, event)}
+              onClick={event => drag.choose(resource, event)}
             >
-              <span className="resource-icon" aria-hidden="true">{item.icon}</span>
+              <span className="resource-icon" aria-hidden="true"><ResourceIcon resource={resource} /></span>
               <span>{item.label}</span>
               <span className="supply-count">{remaining(resource)} left</span>
             </button>
+            <span id={`garden-info-${resource}`} className="sr-only">{RESOURCE_DESCRIPTIONS[resource]}</span>
+            <HelpTip preview label={item.label}>{RESOURCE_DESCRIPTIONS[resource]}</HelpTip>
+            </div>
           );
         })}
       </div>
+      <p className="garden-drag-feedback" role="status">{drag.feedback}</p>
 
       <div className="placement-progress" aria-live="polite">
         <strong>{tiles.length} of 5</strong>

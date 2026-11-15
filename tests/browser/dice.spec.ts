@@ -100,7 +100,7 @@ test('all six settled faces, their embedded artwork and temporary feedback match
     await expect(notice).toHaveCount(0, { timeout: 6000 });
     await page.locator('.dice-panel').evaluate(element => element.scrollIntoView({ block: 'center' }));
     await expect(page.locator('.dice-stage')).toHaveCount(0);
-    await expect(page.locator('.dice-panel')).toHaveText('Roll DiceRoll Dice');
+    await expect(page.locator('.dice-panel')).toHaveText('Roll Dice');
     await expect(page.locator('.event-card')).toHaveCount(0);
     await expect(page.locator('.message-line')).toHaveCount(0);
   }

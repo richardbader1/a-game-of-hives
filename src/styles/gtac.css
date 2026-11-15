@@ -67,7 +67,9 @@ button:disabled { background: #D3D6D5; color: #484D49; opacity: 1; cursor: not-a
 
 /* Let content determine height: board, counters and actions never overlap. */
 .game-screen { height: auto; min-height: 100dvh; overflow: visible; background: #F9F6E7; }
-.game-screen .game-topbar { position: relative; height: 74px; }
+.game-screen .game-topbar { position: relative; height: auto; min-height: 74px; flex-wrap: wrap; gap: 8px 12px; padding-top: 10px; padding-bottom: 10px; }
+.game-header-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.game-header-actions > button { white-space: nowrap; }
 .game-layout { position: relative; inset: auto; overflow: visible; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, 1fr); gap: 20px; max-width: 1600px; padding: 20px; margin: auto; align-items: start; }
 .game-board-column { grid-column: 1; grid-row: 2; position: sticky; top: 110px; padding: 0; }
 .game-board-column .game-board-canvas { position: relative; inset: auto; height: min(72dvh, 760px); min-height: 420px; width: 100%; border: 1px solid #155B4F; border-radius: 20px; overflow: hidden; }
@@ -96,6 +98,12 @@ button:disabled { background: #D3D6D5; color: #484D49; opacity: 1; cursor: not-a
 .gameplay-panel .event-card .full-width { font-size: 16px; }
 .gameplay-panel .status-strip > div { background: #CBF4DF; border: 1px solid #155B4F; }
 .gameplay-panel .status-strip > div > small { display: block; color: #155B4F; }
+.hive-health-card { position: relative; }
+.hive-health-card > .hud-label { padding-right: 52px; }
+.hive-health-card > .help-tip { position: static; }
+.hive-health-card > .help-tip > summary { position: absolute; top: 8px; right: 10px; }
+.hive-health-card .help-tip-copy { position: absolute; top: 52px; left: 10px; width: max(calc(100% - 20px), min(280px, calc(100vw - 64px))); z-index: 42; box-shadow: 0 3px 10px #272A241A; }
+.hive-health-card .help-tip-copy::before { content: ''; position: absolute; top: -8px; left: 0; right: 0; height: 8px; }
 .gameplay-panel .message-line { margin: 0; padding: 12px; }
 .gameplay-panel .action-count { color: #155B4F; font-size: 14px; }
 .gameplay-panel .ready-heading p { color: #155B4F; }
@@ -121,6 +129,30 @@ body.tutorial-active { padding-bottom: 300px; }
 .tutorial-navigation { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
 .tutorial-navigation button { padding: 8px 16px; min-height: 44px; }
 @keyframes guide-pulse { 50% { border-color: #A47700; } }
+
+/* Milestone 3.1: garden guidance stays in the existing setup sidebar. */
+.garden-tutorial-card { position: static; width: 100%; max-height: none; margin: 12px 0; padding: 12px; box-shadow: none; }
+.garden-guide-toggle { padding: 4px 0; min-height: 32px; font-size: 13px; }
+.garden-tutorial-card h2 { font-size: 20px; }
+.garden-resource-option { display: grid; grid-template-columns: minmax(0, 1fr) 32px; align-items: center; gap: 6px; position: relative; }
+.garden-resource-option .resource-choice { width: 100%; touch-action: none; user-select: none; }
+.garden-resource-option .help-tip > summary { width: 32px; border: 0; }
+.garden-resource-option .help-tip-copy { position: absolute; right: 0; width: min(260px, 70vw); z-index: 12; }
+.tutorial-resource-focus { outline: 3px solid #FFCD1F; outline-offset: 2px; animation: guide-pulse 2s ease-in-out infinite; }
+.garden-drag-preview { position: fixed; z-index: 80; display: flex; align-items: center; gap: 8px; border: 2px solid #155B4F; border-radius: 12px; background: #F9F6E7; color: #155B4F; padding: 8px; pointer-events: none; text-transform: capitalize; box-shadow: 0 2px 8px #272A2420; }
+.garden-drag-feedback:empty { display: none; }
+.resource-symbol { display: block; width: 1.5em; height: 1.5em; object-fit: contain; flex-shrink: 0; }
+.resource-icon .resource-symbol, .resource-token-icon .resource-symbol, .recipe-ingredient .resource-symbol { width: 82%; height: 82%; }
+/* Keep the existing board alternatives in the tab order and accessibility tree.
+   Reveal them only while a keyboard user is working within the controls. */
+.accessible-board-controls:not(:focus-within) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+.accessible-board-controls:focus-within { outline: 2px solid #155B4F; outline-offset: 4px; }
+/* Measured baseline: 29px icon boxes, 18px product glyphs, 17px quantities. */
+.game-resource-toolbar { --resource-hud-scale: 1.25; --resource-icon-base: 29px; --resource-glyph-base: 15px; --resource-value-base: 17px; column-gap: 6px; row-gap: 8px; }
+.game-resource-toolbar .resource-token-icon { width: calc(var(--resource-icon-base) * var(--resource-hud-scale)); height: calc(var(--resource-icon-base) * var(--resource-hud-scale)); flex-basis: calc(var(--resource-icon-base) * var(--resource-hud-scale)); font-size: calc(var(--resource-glyph-base) * var(--resource-hud-scale)); }
+.game-resource-toolbar .resource-token-copy strong { font-size: calc(var(--resource-value-base) * var(--resource-hud-scale)); }
+.game-resource-toolbar .product-icon { font-size: calc(18px * var(--resource-hud-scale)); }
+.game-resource-toolbar .recipe-popover { max-width: calc(100vw - 32px); }
 @media (max-width: 1000px) {
   .setup-layout { grid-template-columns: minmax(0, 1fr); }
   .compact-card { margin-top: 0; }
@@ -134,6 +166,8 @@ body.tutorial-active { padding-bottom: 300px; }
   .mission-hero { gap: 20px; }
 }
 @media (max-width: 620px) {
+  .game-resource-toolbar { --resource-icon-base: 26px; --resource-value-base: 16px; }
+  .game-resource-toolbar .product-icon { font-size: calc(13px * var(--resource-hud-scale)); }
   .topbar-note { display: none; }
   .mission-hero, .mission-cards, .mission-bottom { grid-template-columns: 1fr; }
   .pollination-art { max-width: 270px; width: 100%; margin: auto; }
@@ -142,7 +176,7 @@ body.tutorial-active { padding-bottom: 300px; }
   .tutorial-card { width: min(400px, calc(100vw - 32px)); max-height: 65dvh; padding: 10px 16px; }
   .tutorial-card h2 { font-size: 20px; }
   .tutorial-card p { font-size: 14px; }
-  .game-screen .game-topbar { height: 60px; }
+  .game-screen .game-topbar { height: auto; min-height: 60px; }
   .game-resource-toolbar .resource-token { min-width: 78px; }
   .game-layout .gameplay-panel { padding: 14px; }
 }

@@ -15,6 +15,9 @@ import { useTutorialStore } from '../../store/tutorialStore';
 import { PlacementPreview } from './PlacementPreview';
 import { useDiceEffects } from '../effects/DiceEffectsManager';
 import { BoardEffectsPass } from '../effects/BoardEffectsPass';
+import { useGardenDrag } from '../setup/GardenDrag';
+import { GardenDropTargets } from './GardenDropTargets';
+import { gardenResourceFocus } from '../ui/resourceDescriptions';
 
 interface IsometricBoardProps {
   phase: GamePhase;
@@ -61,7 +64,11 @@ export function IsometricBoard({
 }: IsometricBoardProps) {
   const [resetRequest, setResetRequest] = useState(0);
   const effects = useDiceEffects();
-  const guided = useTutorialStore(state => state.active);
+  const tour = useTutorialStore();
+  const guided = tour.active;
+  const focusResource = phase === 'gardenSetup' ? gardenResourceFocus(tour) : undefined;
+  const resourceExample = tiles.find(tile => tile.resource === focusResource);
+  const { drag } = useGardenDrag();
   const tileIds = new Set(tiles.map((tile) => tile.id));
   const gardenSlotsAvailable = tiles.length < STARTING_TILE_COUNT;
   const gameCoordMap = new Map(
@@ -96,6 +103,7 @@ export function IsometricBoard({
       <Canvas frameloop="demand" shadows dpr={[1, 1.5]} gl={{ antialias: true, alpha: false }}>
         <color attach="background" args={['#F9F6E7']} />
         <BoardCamera coords={phase === 'gardenSetup' ? boardCoords : tiles} phase={phase} resetRequest={resetRequest} />
+        {phase === 'gardenSetup' && <GardenDropTargets />}
         {effects.effect && <BoardEffectsPass effect={effects.effect} reducedMotion={effects.reducedMotion} projectTargets={effects.projectTargets} registerInvalidation={effects.registerInvalidation} />}
         <ambientLight intensity={1.35} />
         <directionalLight position={[5, 10, 6]} intensity={2.2} castShadow shadow-mapSize={[1024, 1024]} />
@@ -130,6 +138,8 @@ export function IsometricBoard({
                 selectable={selectable}
                 highlighted={highlighted}
                 preview={Boolean(recommended && hexKey(recommended) === hexKey(coord) && !tile)}
+                instructionalFocus={Boolean(tile && resourceExample?.id === tile.id)}
+                dropTarget={Boolean(isValidGardenSlot && drag?.target && hexKey(drag.target) === hexKey(coord))}
                 selectedResource={selectedResource}
                 onSelect={selectTile}
                 damaged={Boolean(tile?.damaged)}

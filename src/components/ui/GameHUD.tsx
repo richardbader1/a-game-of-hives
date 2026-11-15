@@ -5,8 +5,8 @@ import { GameHelp } from './GameHelp';
 import { HelpTip } from './HelpTip';
 import { DicePanel } from './DicePanel';
 import { useSessionStore } from '../../store/sessionStore';
-import { useEffect, useRef, useState } from 'react';
-import { IMPROVEMENT_SUPPLY, RESOURCE_PRESENTATION, TILE_SUPPLY } from '../../game/config/gameSettings';
+import { NewGameButton } from './NewGameButton';
+import { RESOURCE_PRESENTATION } from '../../game/config/gameSettings';
 import {
   availableBeekeeperActions,
   healthyHiveCount,
@@ -15,6 +15,8 @@ import {
 } from '../../game/engine/gameEngine';
 import type { ActionCategory, ImprovementType, ResourceType } from '../../game/types';
 import { useGameStore } from '../../store/gameStore';
+import { ResourceIcon } from './ResourceIcon';
+import { RESOURCE_DESCRIPTIONS } from './resourceDescriptions';
 
 const ACTION_LABELS: Record<ActionCategory, string> = {
   bee: 'Bee',
@@ -54,37 +56,11 @@ export function GameHUD() {
   const keeperActions = selectedAction === 'beekeeper'
     ? availableBeekeeperActions(state, state.selectedTileId)
     : [];
-  const usedImprovements = {
-    smartHive: hives.filter((hive) => hive.smartHive).length,
-    wildlifeReserve: tiles.filter((tile) => tile.wildlifeReserve).length,
-    noSprayZone: tiles.filter((tile) => tile.noSprayZone).length,
-  };
   const beeCanMove = movementDestinations(state.beeTileId, tiles, 'bee').length > 0;
   const beekeeperCanMove = movementDestinations(state.beekeeperTileId, tiles, 'beekeeper').length > 0;
   const anyGardenSupply = (['pollen', 'nectar', 'water'] as const)
     .some((resource) => remainingTileSupply(tiles, resource) > 0);
-  const [confirmNewGame, setConfirmNewGame] = useState(false);
-  const cancelNewGameRef = useRef<HTMLButtonElement>(null);
-  const newGameTriggerRef = useRef<HTMLButtonElement>(null);
-
   const saveNotice = useSessionStore(state => state.notice);
-  useEffect(() => {
-    if (!confirmNewGame) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeNewGameConfirmation();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [confirmNewGame]);
-
-  useEffect(() => {
-    if (confirmNewGame) cancelNewGameRef.current?.focus();
-  }, [confirmNewGame]);
-
-  function closeNewGameConfirmation() {
-    setConfirmNewGame(false);
-    requestAnimationFrame(() => newGameTriggerRef.current?.focus());
-  }
 
   return (
     <>
@@ -100,7 +76,7 @@ export function GameHUD() {
               ? 'Your team held 10 or more points in honey and bee bread.'
               : 'There are no healthy hives left. You learned how to protect the bees—try again!'}
           </p>
-          <button type="button" className="primary-button" onClick={() => setConfirmNewGame(true)}>Play again</button>
+          <NewGameButton label="Play again" className="primary-button" />
         </div>
       )}
 
@@ -132,10 +108,14 @@ export function GameHUD() {
       </ol>
 
       <div className="status-strip">
-        <div title="If no healthy hives remain, the team loses. Use your beekeeper to repair damaged hives."><span className="hud-label">HEALTHY HIVES</span><strong>{livingHives}<small> / {hives.length}</small></strong><small>{hives.length - livingHives} damaged</small></div>
+        <div className="hive-health-card">
+          <span className="hud-label">HEALTHY HIVES</span>
+          <strong>{livingHives}<small> / {hives.length}</small></strong>
+          <small>{hives.length - livingHives} damaged</small>
+          <HelpTip preview label="hive health">A healthy hive doubles bee collection on its tile. Damage stops that bonus. Repair hives with your beekeeper: losing all healthy hives ends the game immediately.</HelpTip>
+        </div>
         <div><span className="hud-label">TILES</span><strong>{tiles.length}</strong></div>
       </div>
-      <HelpTip label="hive health">A healthy hive doubles bee collection on its tile. Damage stops that bonus. Repair hives with your beekeeper: losing all healthy hives ends the game immediately.</HelpTip>
 
       {!state.diceAnimation && !(currentEvent && !selectedAction && actionCategoriesUsed.length === 0) && <p className="message-line" role="status">{state.message}</p>}
       {state.error && <p className="error-message" role="alert">{state.error}</p>}
@@ -232,7 +212,7 @@ export function GameHUD() {
       {turnPhase === 'trading' && <TradePanel />}
       <BoardDestinations />
       <GameHelp />
-      <p className="save-status" role="status">{saveNotice ?? 'Progress saves automatically on this browser.'}</p>
+      <p className="sr-only" role="status">{saveNotice}</p>
 
       <div className="lower-info-grid">
         {lastCollected && (
@@ -255,58 +235,7 @@ export function GameHUD() {
         )}
       </div>
 
-      <div className="supply-footnote">
-        Garden tiles left: {(['pollen', 'nectar', 'water'] as const).map((resource) => (
-          `${RESOURCE_PRESENTATION[resource].label} ${remainingTileSupply(tiles, resource)}/${TILE_SUPPLY[resource]}`
-        )).join(' · ')}
-        <span> · Improvements: {usedImprovements.smartHive}/{IMPROVEMENT_SUPPLY.smartHive} smart hives, {usedImprovements.wildlifeReserve}/{IMPROVEMENT_SUPPLY.wildlifeReserve} reserves, {usedImprovements.noSprayZone}/{IMPROVEMENT_SUPPLY.noSprayZone} no-spray zones</span>
-      </div>
-      <button
-        ref={newGameTriggerRef}
-        type="button"
-        className="quiet-button start-over"
-        onClick={() => setConfirmNewGame(true)}
-      >Start a new game</button>
     </section>
-    {confirmNewGame && (
-      <div
-        className="confirmation-backdrop"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) closeNewGameConfirmation();
-        }}
-      >
-        <div
-          className="confirmation-dialog"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="new-game-title"
-          onKeyDown={(event) => {
-            if (event.key !== 'Tab') return;
-            const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
-            const first = buttons[0];
-            const last = buttons[buttons.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-              event.preventDefault();
-              last?.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-              event.preventDefault();
-              first?.focus();
-            }
-          }}
-        >
-          <h2 id="new-game-title">Start a new game?</h2>
-          <p>Your current garden will be lost.</p>
-          <div className="confirmation-actions">
-            <button ref={cancelNewGameRef} type="button" className="secondary-button" onClick={closeNewGameConfirmation}>
-              Cancel
-            </button>
-            <button type="button" className="primary-button" onClick={state.reset}>
-              Start new game
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </>
   );
 }
@@ -331,10 +260,11 @@ function ResourceChoices({
             key={resource}
             type="button"
             aria-pressed={selected === resource}
+            title={RESOURCE_DESCRIPTIONS[resource]}
             disabled={remaining === 0}
             onClick={() => onSelect(resource)}
           >
-            <span className="resource-icon" aria-hidden="true">{presentation.icon}</span>
+            <span className="resource-icon" aria-hidden="true"><ResourceIcon resource={resource} /></span>
             <span>{presentation.label}</span>
             <span className="supply-count">{remaining} left</span>
           </button>
